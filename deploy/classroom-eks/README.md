@@ -11,6 +11,7 @@
 강의 본문: [12주차 CD-2](../../docs/WEEK12_EKS_GITOPS.md).
 
 Notion 개인 초안: [강의](https://app.notion.com/p/419b4057395f817bb96ad48b1e87c6dd) · [설치 부록](https://app.notion.com/p/419b4057395f81dab0d4d4246cc762b9).
+준비 파일: [GitHub 설치 폴더](https://github.com/MinQDU014/idea-support-server/tree/codex/classroom-eks-preparation/deploy/classroom-eks).
 프로젝트 상세에서 소유자 대학 Builder ID와 계정 번호를 대조했다. 이 프로젝트는 classic root 로그인 대상이 아니다.
 현재 서울 API는 Organizations SCP로 거절되어, 실제 EKS 생성·Secret 저장·학생 접속은 아직 완료되지 않았다.
 
@@ -205,7 +206,7 @@ CRD가 생긴 뒤 `ImageUpdater` 객체를 적용한다. 예전 0.x의 Applicati
 config에는 공개 principal ARN만 넣고 비밀번호·access key는 쓰지 않는다.
 개인별 SSO를 운영 중인 수업은 그 role을 매핑하는 방식으로 대체할 수 있다.
 
-config 예시의 students에 다음 형식으로 실제 principal을 추가한다.
+config 예시에는 확인한 기존 team1~team8 principal이 이미 들어 있다. 학생 구성이 바뀌면 다음 형식으로 바꾼다.
 
 ```json
 {"namespace":"team1","principal_arn":"arn:aws:iam::950177940921:user/team1"}

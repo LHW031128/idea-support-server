@@ -9,5 +9,14 @@
   "git_path": "deploy/classroom-eks/apps/team",
   "ecr_repository": "idea-support-server",
   "bootstrap_digest": "REPLACE_WITH_EXISTING_SHA256_DIGEST",
-  "students": []
+  "students": [
+    {"namespace":"team1","principal_arn":"arn:aws:iam::950177940921:user/team1"},
+    {"namespace":"team2","principal_arn":"arn:aws:iam::950177940921:user/team2"},
+    {"namespace":"team3","principal_arn":"arn:aws:iam::950177940921:user/team3"},
+    {"namespace":"team4","principal_arn":"arn:aws:iam::950177940921:user/team4"},
+    {"namespace":"team5","principal_arn":"arn:aws:iam::950177940921:user/team5"},
+    {"namespace":"team6","principal_arn":"arn:aws:iam::950177940921:user/team6"},
+    {"namespace":"team7","principal_arn":"arn:aws:iam::950177940921:user/team7"},
+    {"namespace":"team8","principal_arn":"arn:aws:iam::950177940921:user/team8"}
+  ]
 }

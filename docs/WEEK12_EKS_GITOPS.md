@@ -1,5 +1,7 @@
 <p color="blue">이번 주 핵심 질문</p>
 
+[강사용 설치 부록](https://app.notion.com/p/419b4057395f81dab0d4d4246cc762b9) · [전체 배포 파일](https://github.com/MinQDU014/idea-support-server/tree/codex/classroom-eks-preparation/deploy/classroom-eks)
+
 **ECR에 새 이미지가 올라왔다는 사실만으로, 실행 중인 서버는 어떻게 새 버전으로 바뀔까요.**
 
 지난 시간에는 Lightsail 한 대에서 Docker Compose로 서버를 교체했습니다. 이번에는 같은 Spring Boot 패키지를 EKS에서 실행합니다. 서버마다 접속해서 명령을 내리는 대신, Git에 원하는 상태를 적고 Argo CD가 실제 상태를 맞추게 하겠습니다.

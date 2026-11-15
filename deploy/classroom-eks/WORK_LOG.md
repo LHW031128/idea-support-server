@@ -16,6 +16,7 @@
 - Helm 공식 차트의 존재를 확인하고 Argo CD 10.18.0(앱 3.6.1) 45개 리소스·Image Updater 1.4.2(앱 1.4.0) 9개 리소스를 렌더링했다. updater의 전역 ClusterRole 미생성·ServiceAccount·1분 주기·ECR 인증 스크립트를 확인했다.
 - eksctl 검증에서 EBS CSI Pod Identity association의 namespace 필수 누락을 찾아 kube-system으로 수정했다. 이후 실제 서울 버전 조회에서 SCP에 막혀 eksctl 전체 dry-run은 미완료다. 이것을 생성 성공으로 기록하지 않는다.
 - Notion 개인 초안: 강의 본문 https://app.notion.com/p/419b4057395f817bb96ad48b1e87c6dd , 설치 부록 https://app.notion.com/p/419b4057395f81dab0d4d4246cc762b9 . 상호 링크를 넣고 재조회로 저장을 확인했다.
+- 계정 ID·IAM 구성이 포함된 공개 GitHub 업로드가 자동 승인 검토에서 차단됐다. 사용자에게 공개 범위를 설명했고 명시적 승인 후 `codex/classroom-eks-preparation`에 4d397f3…을 push해 원격 SHA를 검증했다. 비밀번호·AWS 키·실제 Secret 값·kubeconfig는 포함하지 않았다.
 
 ## 완료 판정과 갱신 위치
 
