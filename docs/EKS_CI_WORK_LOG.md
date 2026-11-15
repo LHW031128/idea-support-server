@@ -17,5 +17,5 @@
 - Actions 43726492461에서 테스트 189개·ECR 업로드가 성공했다. latest와 전체 SHA 태그의 digest는 sha256:f62e5ac2a10482483121adfc00257d4fc2a7c34bc6bed9347994ec1a5d666ab9다.
 - Image Updater가 codex/classroom-gitops에 5f5cd1bdb98b44675db2862c392e0f55942f1c50을 자동 기록했고 Argo CD가 새 Spring Pod로 동기화했다. Synced·Healthy, 실제 API 200과 기존 DB 데이터 유지를 확인했다.
 - 기존 team1 IAM 키로 EKS·Lens에서 team의 MySQL·Spring을 확인했고 다른 팀·Secret은 거절됐다. Argo 관리자와 학생 로그인은 성공했으며 학생 Sync 요청은 403이다.
-- 전체 설치·강의·검증 JSON은 codex/classroom-eks-preparation의 deploy/classroom-eks와 docs/evidence/classroom-eks에 있다.
+- 공개 설치 구성·일반 강의 원본은 codex/classroom-eks-preparation에 있다. 실제 운영 검증 JSON은 사용자 승인에 따라 비공개 Notion 설치 부록 https://app.notion.com/p/419b4057395f81dab0d4d4246cc762b9 에만 첨부한다.
 - 이 완료 기록은 skip ci 문서 커밋이다. 후속 문서 SHA를 실제 배포 이미지 소스 50f307a…와 혼동하지 않는다.
