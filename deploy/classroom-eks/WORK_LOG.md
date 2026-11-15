@@ -37,3 +37,14 @@
 - 권한: 학생 본인의 인증으로 예시/자기 팀 조회 가능, 다른 팀·Secret·쓰기 거절, 실제 Lens 연결.
 - 설명: `docs/WEEK12_EKS_GITOPS.md`, 이 폴더 `README.md`, 개인 Notion 초안과 설치 부록.
 - 실제 생성·배포 결과와 남은 제한은 이 문서에 누적한다. 연결된 기기에 설치하는 검사는 사용자 지시에 따라 수행하지 않는다.
+
+
+## 2026-11-16 설치 구성 보정
+
+- Python 표준 모듈과 충돌하지 않도록 Secret 생성 도구 이름을 bootstrap-secrets.py로 바꿨다.
+- Image Updater의 실제 차트 컨트롤러 이름에 맞춰 조회·복구 명령을 argocd-image-updater-controller로 수정했다.
+- Application 상태에 이미지 목록이 없는 구성을 지원하도록 지정된 Spring 이미지에 forceUpdate=true를 명시했다.
+- Argo 차트의 ApplicationSet replica 설정과 학생 Lens의 Sync file(s)·team namespace 선택 순서를 맞췄다.
+- 실제 계정·IAM·배포 증거 JSON과 상세 실행 기록은 공개 대상에서 제외하고 비공개 강사용 자료로 관리한다. 공개 설치 구성과 실제 운영 기록의 범위를 구분한다.
+
+업데이트 위치: 이 폴더의 설치 도구·템플릿·README, docs/WEEK12_EKS_GITOPS.md, 비공개 Notion 강의·설치 부록.

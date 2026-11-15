@@ -208,10 +208,13 @@ spec:
           imageName: 950177940921.dkr.ecr.ap-southeast-2.amazonaws.com/idea-support-server:latest
           commonUpdateSettings:
             updateStrategy: digest
+            forceUpdate: true
             platforms: [linux/amd64]
 ```
 
 Git에 쓸 인증은 argocd namespace의 gitops-write Secret에서 읽습니다. ECR 조회 권한은 별도 AWS Pod Identity 역할로 받습니다. 둘은 서로 다른 인증입니다. 하나만 맞아도 전체 배포가 되지는 않습니다.
+
+이번 설치에서는 Application의 status.summary.images가 비어 기본 감시가 이미지를 건너뛰는 것을 확인했습니다. forceUpdate:true로 지정한 Spring 이미지 한 개를 명시적으로 감시합니다. 이 옵션은 실패한 Pod를 정상으로 판정하거나 건강 검사를 생략하는 기능이 아닙니다. 배포 후 readiness와 실제 API 확인은 그대로 필요합니다.
 
 이 예시는 Image Updater 1.x CRD 방식입니다. 예전 0.x의 Application annotation 예제와 섞지 않습니다. 설치 CRD가 생기기 전에 ImageUpdater 파일을 적용하면 리소스 종류를 모른다는 오류가 납니다.
 
@@ -321,8 +324,8 @@ kubectl --context classroom-team1 -n team1 get pods
 ```
 
 1. configure에는 자기 팀의 키, region ap-southeast-2, output json을 입력합니다. STS의 Account가 950177940921이고 Arn이 자기 team1 사용자인지 확인합니다. 다른 계정이면 손을 들어 주세요.
-2. Lens의 로컬 kubeconfig 추가에서 %USERPROFILE%\.kube\config를 등록합니다. 기본 자동 감지로 보이면 해당 context를 선택합니다.
-3. classroom-team1을 연결하고 namespace를 team으로 선택합니다. Workloads → Pods에서 mysql-0과 spring을 확인합니다.
+2. Lens의 Preferences → Kubernetes → Manage Kubeconfigs → Sync file(s)에서 자기 PC의 `%USERPROFILE%\.kube\config`를 선택합니다. 버전에 따라 Integrations → Local Kubeconfigs → Watch files & folders로 보일 수 있습니다.
+3. classroom-team1 → Workloads → Pods를 엽니다. namespace 선택에서 default·All namespaces를 해제하고 **team만** 선택해 mysql-0과 spring을 확인합니다. 첫 화면의 default에서 Failed to load items가 나오는 것은 해당 namespace 조회 권한이 없기 때문일 수 있습니다.
 4. 자기 namespace team1을 선택합니다. No resources found가 정상입니다.
 5. team의 Spring Pod → Logs에서 기동 결과를 확인합니다. 비밀번호나 token을 화면에 붙이지 않습니다.
 
@@ -407,6 +410,6 @@ Spring Pod가 새로 만들어지는 동안 mysql-0의 이름·PVC가 유지되�
 
 강사용 설치 부록에는 실제 순서대로 namespace, EBS, MySQL, Spring, 관리자 Secret, ECR 인증, Git write-back, Lens 권한을 만드는 명령과 전체 배포 파일 위치를 정리했습니다.
 
-# 준비·검증 상태
+# 강사용 검증 기록
 
-이 자료는 시드니 classroom-main 구축을 위한 강의 초안입니다. 실제 클러스터 주소·Lens 접속·배포 커밋·암호 저장 완료 여부는 구축 후 검증 기록에서 확인합니다. 준비 파일이 존재하는 것과 실제로 배포된 것은 구분합니다.
+실제 계정의 배포 커밋·이미지 digest·학생 접속 결과는 [비공개 설치 부록](https://app.notion.com/p/419b4057395f81dab0d4d4246cc762b9)에 기록합니다. 설치용 샘플과 실제 실행 결과를 구분합니다.

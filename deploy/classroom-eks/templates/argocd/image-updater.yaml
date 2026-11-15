@@ -16,4 +16,5 @@ spec:
           imageName: __IMAGE__:latest
           commonUpdateSettings:
             updateStrategy: digest
+            forceUpdate: true
             platforms: [linux/amd64]

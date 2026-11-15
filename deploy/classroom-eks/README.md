@@ -4,7 +4,7 @@
 클러스터 하나에 `team`, `team1`~`team8`을 만들고 앱과 MySQL은 `team`에만 설치한다.
 `argocd`, `kube-system`의 운영 Pod는 별도이며 팀 앱의 수에 포함하지 않는다.
 
-**상태: 설치 파일 준비. 실제 생성·배포·Lens 인증은 아직 검증하지 않았다.**
+**설치 절차와 샘플 구성. 실제 구축 결과는 비공개 Notion 설치 부록에서 관리한다.**
 현재 PC 기본 AWS 계정은 다른 계정이므로 이 계정으로 생성하면 안 된다.
 기존 Lightsail과 DB를 이 EKS로 자동 이전하거나 삭제하지 않는다.
 
@@ -13,7 +13,7 @@
 Notion 개인 초안: [강의](https://app.notion.com/p/419b4057395f817bb96ad48b1e87c6dd) · [설치 부록](https://app.notion.com/p/419b4057395f81dab0d4d4246cc762b9).
 준비 파일: [GitHub 설치 폴더](https://github.com/MinQDU014/idea-support-server/tree/codex/classroom-eks-preparation/deploy/classroom-eks).
 프로젝트 상세에서 소유자 대학 Builder ID와 계정 번호를 대조했다. 이 프로젝트는 classic root 로그인 대상이 아니다.
-사용자가 기존 ECR과 같은 시드니 리전 사용으로 변경했다. 시드니 API 조회는 정상이며 실제 EKS 생성·Secret 저장·학생 접속은 이어 검증한다.
+사용자가 기존 ECR과 같은 시드니 리전 사용으로 변경했다. 실제 실행 상태와 검증 커밋은 비공개 설치 부록에 기록한다.
 
 ## 1. 계정·도구·네트워크 준비 (강사, Bash)
 
@@ -99,7 +99,7 @@ EBS CSI의 Pod Identity IAM 역할은 cluster.yaml의 addon 설정으로 생성�
 kubectl apply -f .local/classroom-eks/rendered/platform/namespaces.yaml
 kubectl apply -f .local/classroom-eks/rendered/platform/storage.yaml
 kubectl apply -f .local/classroom-eks/rendered/platform/observer.yaml
-python3 deploy/classroom-eks/secrets.py app --kubeconfig "$KUBECONFIG"
+python3 deploy/classroom-eks/bootstrap-secrets.py app --kubeconfig "$KUBECONFIG"
 ```
 
 `mysql-auth`에 DB 이름·사용자·암호, `spring-auth`에 JWT·SHA·AES 키가 저장된다.
@@ -116,7 +116,7 @@ argocd-image-updater chart `1.4.2` / controller `1.4.0`.
 helm repo add argo https://argoproj.github.io/argo-helm
 helm repo update
 helm upgrade --install argocd argo/argo-cd --version 10.18.0 --namespace argocd --create-namespace -f .local/classroom-eks/rendered/argocd/values.yaml --wait --timeout 10m
-python3 deploy/classroom-eks/secrets.py argocd --kubeconfig "$KUBECONFIG"
+python3 deploy/classroom-eks/bootstrap-secrets.py argocd --kubeconfig "$KUBECONFIG"
 kubectl -n argocd port-forward svc/argocd-server 8443:443 --address 127.0.0.1
 ```
 
@@ -152,7 +152,7 @@ Helm upgrade 때 기존 `argocd-secret` 관리 항목의 소유권 충돌이 없
 이미 브랜치가 있으면 새로 덮어쓰지 말고 최신 파일을 확인한다.
 
 ```bash
-python3 deploy/classroom-eks/secrets.py git --kubeconfig "$KUBECONFIG"
+python3 deploy/classroom-eks/bootstrap-secrets.py git --kubeconfig "$KUBECONFIG"
 kubectl apply -f .local/classroom-eks/rendered/argocd/project.yaml
 kubectl apply -f .local/classroom-eks/rendered/argocd/application.yaml
 kubectl -n argocd get applications classroom-team
@@ -164,7 +164,7 @@ Git 인증은 해당 저장소 Contents read/write만 가진 fine-grained token 
 read 전용 연결만으로는 Image Updater의 commit/push가 되지 않는다.
 또는 해당 저장소에만 쓰기가 허용된 SSH deploy key를 사용한다. 이 경우 config의 git_repository를
 `git@github.com:MinQDU014/idea-support-server.git`으로 바꿔 다시 렌더링하고,
-`secrets.py git --repository git@github.com:MinQDU014/idea-support-server.git --ssh-key 개인키경로 --kubeconfig "$KUBECONFIG"`로 연결한다.
+`bootstrap-secrets.py git --repository git@github.com:MinQDU014/idea-support-server.git --ssh-key 개인키경로 --kubeconfig "$KUBECONFIG"`로 연결한다.
 GitHub에 등록하는 것은 공개 키이고 개인 키는 argocd Secret에만 저장한다. Argo CD의 GitHub known-hosts 검증을 유지한다.
 브랜치 보호가 직접 push를 막으면 write-back PR 방식으로 바꾸고 승인 뒤 합친다.
 학생은 이 브랜치·관리자 토큰에 쓰기 권한을 받지 않는다.
@@ -190,7 +190,7 @@ PY
 eksctl create podidentityassociation -f .local/classroom-eks/rendered/updater-identity.yaml
 helm upgrade --install argocd-image-updater argo/argocd-image-updater --version 1.4.2 --namespace argocd -f .local/classroom-eks/rendered/argocd/updater-values.yaml --set serviceAccount.create=false --wait --timeout 5m
 kubectl apply -f .local/classroom-eks/rendered/argocd/image-updater.yaml
-kubectl -n argocd logs deployment/argocd-image-updater --tail=100
+kubectl -n argocd logs deployment/argocd-image-updater-controller --tail=100
 ```
 
 `1.4.0` controller에는 AWS CLI가 포함된다. `ecr-login.sh`가 Pod Identity로
@@ -201,6 +201,10 @@ ECR 토큰을 얻으며 토큰은 10시간 후 새로 읽는다. ECR 토큰은 1
 CRD가 생긴 뒤 `ImageUpdater` 객체를 적용한다. 예전 0.x의 Application annotation만
 붙이는 예제를 최신 1.x 설정과 섞지 않는다. 기본 폴링 1분, Argo Git 재조정 2분+jitter로
 전체 반영은 즉시가 아니다. 필요하면 Argo UI의 Refresh를 강사가 사용한다.
+
+이 설치의 Application.status.summary.images는 비어 있어 기본 감시에서 이미지가 건너뛰어졌다.
+따라서 해당 Spring 이미지 한 개의 commonUpdateSettings.forceUpdate=true를 명시한다.
+이는 상태 목록에 이미지가 없어도 추적한다는 뜻이며 readiness 실패를 무시한다는 뜻이 아니다.
 
 ## 7. 학생의 AWS 인증·Lens
 
@@ -255,6 +259,17 @@ Lens는 로컬 `%USERPROFILE%\.kube\config`를 등록한다. 프리미엄 AWS �
 AWS CLI 실행 경로가 Lens의 PATH에 있어야 하고 SSO 만료 시 재로그인 후 다시 연결한다.
 강사 kubeconfig·관리자 AWS key·ServiceAccount 영구 token을 학생에게 나눠 주지 않는다.
 
+확인한 Lens 화면의 실제 순서:
+
+1. Preferences → Kubernetes → Manage Kubeconfigs → Sync file(s)를 연다.
+2. 자기 PC의 `%USERPROFILE%\.kube\config`를 선택한다. 최신 버전은 Preferences → Integrations → Local Kubeconfigs → Watch files & folders로 표시될 수 있다.
+3. Navigator → Local Kubeconfigs → classroom-team1을 열고 Workloads → Pods를 선택한다.
+4. namespace 선택에서 default·All namespaces를 해제하고 **team만** 선택한다. 최초 화면의 default는 학생 권한 범위가 아니므로 Failed to load items가 나올 수 있다.
+5. mysql-0과 spring-…의 Running·Ready 상태를 확인한다. 자기 team1을 선택하면 빈 목록이 정상이다.
+
+학생은 자기 팀 키로 연결한 뒤 예시 team의 Pod와 로그가 보이는지 확인한다. PC별 AWS CLI 설치와 학교 방화벽 조건도 대조한다.
+근거: [Lens 로컬 클러스터 등록](https://docs.lenshq.io/k8slens/getting-started/add-clusters/add-local-cluster/).
+
 예상 결과: 예시 team의 mysql-0·spring Pod 1개 조회, 본인 team1은 No resources found,
 다른 팀·Secret·삭제 권한은 no. 인증 정보 없이 kubeconfig 파일만 복사해도 접속되지 않는다.
 이번 수업은 고정 IP 없이 IAM 키로 접속하므로 publicAccessCIDRs는 0.0.0.0/0이다.
@@ -276,7 +291,7 @@ IP를 제한하는 구성으로 바꾼 경우에는 학생의 실제 egress 공�
 `git revert`만 하면 updater가 latest를 다시 선택할 수 있다.
 
 ```bash
-kubectl -n argocd scale deployment argocd-image-updater --replicas=0
+kubectl -n argocd scale deployment argocd-image-updater-controller --replicas=0
 # GitOps 브랜치에서 실패한 digest 커밋을 git revert → push
 kubectl -n team rollout status deployment/spring --timeout=5m
 ```
@@ -289,7 +304,4 @@ Retain인 EBS는 클러스터 삭제 뒤에도 비용이 남는다. 기존 Light
 
 ## 검증 기록
 
-현재 로컬 검증·실제 접근 가능 여부는 [작업 기록](WORK_LOG.md)에 구분한다.
-실제 실행 전에는 `kubectl apply --dry-run=server`, Helm template과 CRD schema,
-student의 **실제 IAM identity**로 no/yes 검사, Lens 로그인, DB 재시작 후 데이터 유지까지 확인한다.
-관리자 impersonation만으로 EKS IAM 인증과 네트워크까지 통과했다고 판단하지 않는다.
+실제 계정의 배포·학생 접속 검증 기록은 [비공개 Notion 설치 부록](https://app.notion.com/p/419b4057395f81dab0d4d4246cc762b9)에서 관리한다. 공개 저장소에는 설치 절차와 구성만 보관한다.
