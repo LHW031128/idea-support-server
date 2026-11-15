@@ -18,9 +18,20 @@
 - Notion 개인 초안: 강의 본문 https://app.notion.com/p/419b4057395f817bb96ad48b1e87c6dd , 설치 부록 https://app.notion.com/p/419b4057395f81dab0d4d4246cc762b9 . 상호 링크를 넣고 재조회로 저장을 확인했다.
 - 계정 ID·IAM 구성이 포함된 공개 GitHub 업로드가 자동 승인 검토에서 차단됐다. 사용자에게 공개 범위를 설명했고 명시적 승인 후 `codex/classroom-eks-preparation`에 4d397f3…을 push해 원격 SHA를 검증했다. 비밀번호·AWS 키·실제 Secret 값·kubeconfig는 포함하지 않았다.
 
+### 고급 기능 활성화 완료와 시드니 변경
+
+- 별칭으로 다시 진행하라는 사용자 답변 후 주소와 최종 확인창을 대조했다. AWS 화면의 `고급 기능 활성화 완료` 성공 메시지와 Rubber Ducking Active를 확인했다. 관리 계정과 수업 자원 계정 950177940921은 구분한다.
+- 활성화 후 리전 제한 SCP는 남았다. 관리 계정의 임시 CLI 세션으로 원본과 적용 대상을 읽어 보관하고 수업 계정에만 서울을 허용하는 수정안을 준비했으나, 자동 승인 검토에서 조직 보안 경계 변경의 명시적 승인 부족으로 차단됐다. 정책 수정은 실행되지 않았다.
+- 사용자가 이후 **ECR과 같은 리전으로 진행**하라고 지시했다. 기존 ECR은 시드니 ap-southeast-2이므로 이후 모든 실제 구축·스크립트 가드·강의·Lens 안내를 시드니로 변경한다. 서울 정책 변경을 재시도하지 않는다.
+- 시드니 EKS 목록은 비어 있고 1.35는 STANDARD_SUPPORT다. 기존 ECR latest digest를 시작 이미지 후보로 읽었으며 실제 준비·배포 결과는 별도 기록한다. main과 dev의 앱 소스 차이는 없고 추가 운영 문서·도구만 달라, 앱을 무조건 main에 합칠 필요는 없다.
+- 초기 로컬 백엔드 검사는 기존 별도 checkout의 33307 테스트 MySQL과 충돌해 준비 단계에서 실패했다. 기존 프로세스와 DB는 보존하고 작업 공간 안의 33317 전용 테스트 DB를 준비했다.
+- 별도 테스트 DB를 명시한 ktlintCheck·test 재실행은 189개 성공·실패 0·건너뜀 0이다. 시드니용 eksctl dry-run도 통과했다. EKS 1.35, t3.large 2대의 실제 생성은 23:24 KST에 시작했다.
+- 학생 접속망에 고정 공인 IP가 없다는 사용자 답변에 따라 public EKS API + IAM 키 인증 + Access Entry/RBAC로 연결한다. 노드의 private endpoint는 유지하고 앱·DB·Argo UI는 ClusterIP다. 모든 IP를 허용하려면 config에 allow_public_api_from_anywhere=true를 명시해야 한다.
+- GitHub에 해당 저장소만 쓰는 Argo CD GitOps SSH deploy key를 등록했다. ID 169963226, read_only=false. 개인 키와 AWS 키·암호는 공개하지 않는다. 실제 Kubernetes Secret 저장은 클러스터 준비 후 진행한다.
+
 ## 완료 판정과 갱신 위치
 
-- 클러스터: 서울 STS 계정 확인, control plane ACTIVE·노드 Ready·EBS CSI/Pod Identity add-on 확인.
+- 클러스터: 시드니 STS 계정 확인, control plane ACTIVE·노드 Ready·EBS CSI/Pod Identity add-on 확인.
 - GitOps: 정확한 코드 브랜치·GitOps 브랜치, ECR digest·Git 기록·Argo revision·실제 Pod·API 결과.
 - 데이터: MySQL PVC Bound와 DB 쓰기·재기동 후 데이터 유지 확인.
 - 권한: 학생 본인의 인증으로 예시/자기 팀 조회 가능, 다른 팀·Secret·쓰기 거절, 실제 Lens 연결.

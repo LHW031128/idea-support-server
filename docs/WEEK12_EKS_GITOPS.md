@@ -30,14 +30,14 @@ EKS 생성과 도구 설치는 강사가 수업 전에 끝냅니다. 수업 중�
 
 | 구분 | 지난 시간 | 이번 시간 |
 | --- | --- | --- |
-| 이미지 저장 | docker.minq.live | 서울 ECR |
+| 이미지 저장 | docker.minq.live | 시드니 ECR |
 | 실행 환경 | Lightsail VM + Compose | 공유 EKS + Kubernetes |
 | 배포의 기준 | 배포 요청을 받은 서버의 교체 명령 | Git에 기록한 원하는 상태 |
 | 실제 교체 | Compose로 컨테이너 교체 | Deployment가 ReplicaSet과 Pod 교체 |
 | 확인 도구 | Actions·브라우저·서버 로그 | Actions·Git·Argo CD·Lens |
 | 복구 | 코드 Revert 후 재빌드·배포 | 이미지 갱신을 멈추고 Git 배포 정의 복구, 또는 코드 Revert 후 정상 이미지 재발행 |
 
-이번 수업은 **수업 계정 950177940921, 서울 ap-northeast-2, classroom-main**을 사용하도록 준비합니다. 기존 시드니 Lightsail 서버·학생 DB를 이번 EKS 실습이 자동으로 이전하는 것은 아닙니다. EKS의 team MySQL은 새 수업용 데이터베이스입니다.
+이번 수업은 **수업 계정 950177940921, 시드니 ap-southeast-2, classroom-main**을 사용하도록 준비합니다. 기존 시드니 Lightsail 서버·학생 DB를 이번 EKS 실습이 자동으로 이전하는 것은 아닙니다. EKS의 team MySQL은 새 수업용 데이터베이스입니다.
 
 손을 들어 보세요.
 
@@ -82,7 +82,7 @@ Pod는 없어져도 다시 생길 수 있어야 합니다. 데이터베이스 �
 ## 2. 오늘의 배치도
 
 ```text
-AWS 수업 계정 950177940921 / 서울 ap-northeast-2
+AWS 수업 계정 950177940921 / 시드니 ap-southeast-2
 └─ EKS classroom-main
    ├─ argocd: Argo CD + Image Updater
    ├─ kube-system: DNS·네트워크·EBS 드라이버·Pod Identity Agent
@@ -101,6 +101,10 @@ namespace는 폴더처럼 묶어 주지만, 그 이름만으로 접근 권한·�
 Spring은 mysql.team.svc.cluster.local:3306으로 DB에 접속합니다. 이 주소는 클러스터 안에서 쓰는 Service DNS입니다. 학생 노트북 브라우저에서 직접 열리는 주소가 아닙니다.
 
 이번 수업의 Spring·MySQL·Argo 서비스는 ClusterIP로 시작합니다. 강사는 port-forward로 Argo CD와 Spring을 확인합니다. 학생 Lens는 Kubernetes API에 인증해서 상태와 로그를 읽습니다. MySQL 3306을 인터넷에 공개하지 않습니다.
+
+강의실에는 고정 공인 IP가 없습니다. EKS의 공개 API에는 어느 접속망에서도 도달할 수 있게 하고, 기존 팀별 AWS 키 → 짧은 수명의 EKS 인증 토큰 → Access Entry → RBAC 순서로 접근을 확인합니다. SSH 개인 키로 노드에 로그인하는 방식이 아닙니다. kubeconfig에는 클러스터 주소·인증서·AWS CLI 실행 설정이 있고 비밀 access key 자체를 넣지 않습니다.
+
+학생의 AWS 키는 자기 팀에만 개별 전달합니다. 다른 팀 키나 관리자 키를 복사하지 않습니다. 예시 ECR을 학생이 덮어써 배포를 바꾸지 못하도록 그 저장소의 업로드도 제한합니다. [EKS 공개 API의 IAM·RBAC 인증](https://docs.aws.amazon.com/eks/latest/userguide/cluster-endpoint.html).
 
 실제 사용자에게 웹서비스를 공개하려면 Ingress 또는 LoadBalancer, 도메인, TLS 인증서, CORS 주소 설정을 추가해야 합니다. Lens 접속이 되는 것과 일반 사용자가 앱을 여는 것은 별개입니다.
 
@@ -129,7 +133,7 @@ GitOps에서는 배포할 이미지와 Pod 개수 같은 설정을 Git에 적습
 ```text
 코드 main에 merge
   → Actions 테스트 통과
-  → Jib이 서울 ECR의 latest를 새 이미지로 갱신
+  → Jib이 시드니 ECR의 latest를 새 이미지로 갱신
   → Image Updater가 ECR latest의 digest를 주기적으로 비교
   → GitOps 브랜치 kustomization.yaml에 새 digest commit/push
   → Argo CD가 Git 변경을 발견하고 OutOfSync 표시
@@ -169,7 +173,7 @@ Jib은 amd64·arm64 멀티아키텍처 이미지를 만들 수 있습니다. ECR
 ```yaml
 # Application 일부: 무엇을 어디에 배포할까
 source:
-  repoURL: https://github.com/MinQDU014/idea-support-server.git
+  repoURL: git@github.com:MinQDU014/idea-support-server.git
   targetRevision: codex/classroom-gitops
   path: deploy/classroom-eks/apps/team
 destination:
@@ -201,7 +205,7 @@ spec:
     - namePattern: classroom-team
       images:
         - alias: spring
-          imageName: 950177940921.dkr.ecr.ap-northeast-2.amazonaws.com/idea-support-server:latest
+          imageName: 950177940921.dkr.ecr.ap-southeast-2.amazonaws.com/idea-support-server:latest
           commonUpdateSettings:
             updateStrategy: digest
             platforms: [linux/amd64]
@@ -233,7 +237,7 @@ Synced여도 비밀번호가 틀려 앱은 죽을 수 있습니다. Healthy여�
 
 | 순서 | 작업 | 다음으로 넘어가기 전 확인 |
 | --- | --- | --- |
-| 1 | 수업 계정·서울 확인, ECR에 시작 이미지 준비 | 계정 950177940921, 서울 URI·digest 존재 |
+| 1 | 수업 계정·시드니 확인, ECR에 시작 이미지 준비 | 계정 950177940921, 시드니 URI·digest 존재 |
 | 2 | EKS·노드·EBS CSI·Pod Identity Agent 준비 | Node Ready, add-on ACTIVE |
 | 3 | team과 team1~team8 생성, StorageClass 준비 | 9개 namespace, gp3 설정 |
 | 4 | team에 DB·Spring Secret 생성 | Secret 이름·필수 key 존재, 값은 비공개 |
@@ -311,12 +315,12 @@ Lens에 클러스터가 등록된 것만으로 권한이 생기지 않습니다.
 ```powershell
 aws configure --profile classroom-team1
 aws sts get-caller-identity --profile classroom-team1
-aws eks update-kubeconfig --region ap-northeast-2 --name classroom-main --alias classroom-team1 --profile classroom-team1
+aws eks update-kubeconfig --region ap-southeast-2 --name classroom-main --alias classroom-team1 --profile classroom-team1
 kubectl --context classroom-team1 -n team get pods
 kubectl --context classroom-team1 -n team1 get pods
 ```
 
-1. configure에는 자기 팀의 키, region ap-northeast-2, output json을 입력합니다. STS의 Account가 950177940921이고 Arn이 자기 team1 사용자인지 확인합니다. 다른 계정이면 손을 들어 주세요.
+1. configure에는 자기 팀의 키, region ap-southeast-2, output json을 입력합니다. STS의 Account가 950177940921이고 Arn이 자기 team1 사용자인지 확인합니다. 다른 계정이면 손을 들어 주세요.
 2. Lens의 로컬 kubeconfig 추가에서 %USERPROFILE%\.kube\config를 등록합니다. 기본 자동 감지로 보이면 해당 context를 선택합니다.
 3. classroom-team1을 연결하고 namespace를 team으로 선택합니다. Workloads → Pods에서 mysql-0과 spring을 확인합니다.
 4. 자기 namespace team1을 선택합니다. No resources found가 정상입니다.
@@ -332,7 +336,7 @@ Lens의 유료 AWS 자동 검색 기능은 이번 수업의 필수 조건이 아
 | SSO 세션 만료·Unauthorized | aws sso login, 본인 profile·Access Entry |
 | eks:DescribeCluster AccessDenied | 본인 IAM에 해당 클러스터 조회 권한 |
 | Forbidden | 선택 namespace와 RBAC, 앱 Pod 조회 자체도 막혔는지 |
-| timeout | 강의실 공인 IP 허용·VPN·EKS endpoint 접근 |
+| timeout | AWS 리전·클러스터 주소·학교 방화벽의 443 연결·DNS, IP 제한형 구성이라면 허용 CIDR |
 | 팀 앱이 비어 있음 | 이번은 team에만 앱이 있는지 |
 
 ## STEP 2. 권한 경계를 확인하기 (5분)
@@ -357,7 +361,7 @@ kubectl --context classroom-team1 auth can-i create pods/exec -n team
 | 관찰 위치 | 기록할 것 |
 | --- | --- |
 | GitHub Actions | 코드 변경 SHA, 테스트·빌드 성공 |
-| 서울 ECR | latest의 이전·새 digest |
+| 시드니 ECR | latest의 이전·새 digest |
 | GitOps 브랜치 | Image Updater가 만든 커밋, kustomization의 변경 |
 | Argo CD | 감지한 Git revision, OutOfSync→Synced, Progressing→Healthy |
 | Lens | 이전·새 ReplicaSet, 새 Pod 이름, Ready·Events·로그 |
@@ -405,4 +409,4 @@ Spring Pod가 새로 만들어지는 동안 mysql-0의 이름·PVC가 유지되�
 
 # 준비·검증 상태
 
-이 자료는 서울 classroom-main 구축을 위한 강의 초안입니다. 실제 클러스터 주소·Lens 접속·배포 커밋·암호 저장 완료 여부는 구축 후 검증 기록에서 확인합니다. 준비 파일이 존재하는 것과 실제로 배포된 것은 구분합니다.
+이 자료는 시드니 classroom-main 구축을 위한 강의 초안입니다. 실제 클러스터 주소·Lens 접속·배포 커밋·암호 저장 완료 여부는 구축 후 검증 기록에서 확인합니다. 준비 파일이 존재하는 것과 실제로 배포된 것은 구분합니다.

@@ -1,6 +1,6 @@
-# 서울 EKS · Argo CD · GitOps 수업 운영
+# 시드니 EKS · Argo CD · GitOps 수업 운영
 
-2026-11-15 요청: 수업 계정 `950177940921`, 서울 `ap-northeast-2`, `classroom-main`.
+2026-11-15 요청: 수업 계정 `950177940921`, 시드니 `ap-southeast-2`, `classroom-main`.
 클러스터 하나에 `team`, `team1`~`team8`을 만들고 앱과 MySQL은 `team`에만 설치한다.
 `argocd`, `kube-system`의 운영 Pod는 별도이며 팀 앱의 수에 포함하지 않는다.
 
@@ -13,7 +13,7 @@
 Notion 개인 초안: [강의](https://app.notion.com/p/419b4057395f817bb96ad48b1e87c6dd) · [설치 부록](https://app.notion.com/p/419b4057395f81dab0d4d4246cc762b9).
 준비 파일: [GitHub 설치 폴더](https://github.com/MinQDU014/idea-support-server/tree/codex/classroom-eks-preparation/deploy/classroom-eks).
 프로젝트 상세에서 소유자 대학 Builder ID와 계정 번호를 대조했다. 이 프로젝트는 classic root 로그인 대상이 아니다.
-현재 서울 API는 Organizations SCP로 거절되어, 실제 EKS 생성·Secret 저장·학생 접속은 아직 완료되지 않았다.
+사용자가 기존 ECR과 같은 시드니 리전 사용으로 변경했다. 시드니 API 조회는 정상이며 실제 EKS 생성·Secret 저장·학생 접속은 이어 검증한다.
 
 ## 1. 계정·도구·네트워크 준비 (강사, Bash)
 
@@ -23,9 +23,9 @@ AWS CloudShell 또는 강사의 Bash에서 실행한다. 학생은 이 절을 �
 
 ```bash
 export AWS_PROFILE=classroom  # CloudShell의 수업 계정 세션이면 이 줄은 생략
-export AWS_REGION=ap-northeast-2
+export AWS_REGION=ap-southeast-2
 aws sts get-caller-identity
-aws eks describe-cluster-versions --region ap-northeast-2 --output table
+aws eks describe-cluster-versions --region ap-southeast-2 --output table
 ```
 
 Account가 반드시 `950177940921`인지 확인한다. `STANDARD_SUPPORT` 중 사용할 Kubernetes 버전을 고른다.
@@ -35,8 +35,12 @@ Free plan·리전 제한이 있으면 계정 소유자의 전환이 필요하며
 수업용 독립 VPC, 공인 subnet 두 개, t3.large 워커 두 대를 사용한다.
 노드는 공인 IP로 이미지·AWS API에 나가며 SSH·NodePort는 공개하지 않는다.
 NAT Gateway와 외부 LoadBalancer는 기본 구성에 없다. EKS API는 private+public이며
-public API는 관리자·강의실의 **외부 공인 CIDR**만 허용한다. 내부 192.168 주소를 넣지 않는다.
-CloudShell에서 Kubernetes API를 쓰려면 VPC CloudShell 또는 허용된 고정 egress가 필요하다.
+강의실의 고정 공인 IP가 없으므로 public API는 모든 IPv4 접속망에서 도달할 수 있게 하고,
+AWS IAM 인증·EKS Access Entry·팀별 RBAC로 실제 접근을 통제한다. 노드와 제어부 사이는 private endpoint를 사용한다.
+이는 인증 없는 앱·DB 공개와 다르다. 익명 쓰기·관리자 공용 키·장기 ServiceAccount token은 제공하지 않는다.
+config의 `allow_public_api_from_anywhere: true`가 명시된 경우에만 `0.0.0.0/0`을 허용한다.
+고정 출구나 VPN이 준비된 수업은 이 값을 false로 바꾸고 허용할 외부 CIDR만 넣는다.
+근거: [EKS API endpoint와 IAM/RBAC](https://docs.aws.amazon.com/eks/latest/userguide/cluster-endpoint.html).
 EKS 제어부·노드·EBS·IPv4 비용이 발생한다. 노드만 중지해도 제어부 비용은 남는다.
 
 ## 2. 공개 설치 파일 생성
@@ -47,22 +51,22 @@ cp deploy/classroom-eks/config.example.json .local/classroom-eks/config.json
 python3 -m pip install PyYAML bcrypt
 ```
 
-config의 버전·공인 CIDR·기존 이미지 digest를 실제 값으로 채운다.
-서울 ECR 저장소 `idea-support-server`에 처음 실행할 이미지를 먼저 올려야 한다.
-기존 시드니 ECR은 다른 리전이다. 서울에 저장소를 만들고 main workflow의 region·registry도 맞춘다.
+config의 버전·접속망 정책·기존 이미지 digest를 실제 값으로 채운다.
+시드니 ECR 저장소 `idea-support-server`에 처음 실행할 이미지를 먼저 올려야 한다.
+기존 시드니 ECR 저장소를 그대로 사용한다. main workflow의 기존 region·registry도 시드니이므로 유지한다.
 
 ```bash
-aws ecr describe-repositories --repository-names idea-support-server --region ap-northeast-2
+aws ecr describe-repositories --repository-names idea-support-server --region ap-southeast-2
 # RepositoryNotFoundException일 때만 생성한다. 다른 오류를 무시하고 진행하지 않는다.
-aws ecr create-repository --repository-name idea-support-server --region ap-northeast-2 --image-scanning-configuration scanOnPush=true
+aws ecr create-repository --repository-name idea-support-server --region ap-southeast-2 --image-scanning-configuration scanOnPush=true
 ```
 
-기존 main CI의 ECR 업로드 부분은 아래와 같이 서울 주소를 사용한다. 기존 test job 뒤에 둔다.
+기존 main CI의 ECR 업로드 부분은 아래와 같이 시드니 주소를 사용한다. 기존 test job 뒤에 둔다.
 GitHub OIDC 역할 또는 현재의 수업용 인증 설정은 별도 계정 권한 검토 후 사용한다.
 
 ```bash
-export AWS_REGION=ap-northeast-2
-export CONTAINER_IMAGE=950177940921.dkr.ecr.ap-northeast-2.amazonaws.com/idea-support-server:latest
+export AWS_REGION=ap-southeast-2
+export CONTAINER_IMAGE=950177940921.dkr.ecr.ap-southeast-2.amazonaws.com/idea-support-server:latest
 export REGISTRY_USER=AWS
 export REGISTRY_PASSWORD=$(aws ecr get-login-password --region "$AWS_REGION")
 ./gradlew jib -PprojectDataImageTargetEnv=prod
@@ -78,10 +82,10 @@ GitHub job은 테스트 통과 후에만 이 단계를 실행한다. workflow에
 python3 deploy/classroom-eks/prepare.py --config .local/classroom-eks/config.json
 eksctl create cluster -f .local/classroom-eks/rendered/cluster.yaml
 export KUBECONFIG="$PWD/.local/classroom-eks/kubeconfig-admin"
-aws eks update-kubeconfig --name classroom-main --region ap-northeast-2 --alias classroom-main-admin --kubeconfig "$KUBECONFIG"
+aws eks update-kubeconfig --name classroom-main --region ap-southeast-2 --alias classroom-main-admin --kubeconfig "$KUBECONFIG"
 kubectl config current-context
 kubectl get nodes
-aws eks list-addons --cluster-name classroom-main --region ap-northeast-2
+aws eks list-addons --cluster-name classroom-main --region ap-southeast-2
 ```
 
 이 별도 kubeconfig를 모든 강사 명령에 사용한다. PC의 기존 운영 클러스터 context를 사용하지 않는다.
@@ -177,7 +181,7 @@ import yaml
 root = Path('.local/classroom-eks/rendered')
 policy = yaml.safe_load((root/'iam/updater-ecr-read.yaml').read_text())
 config = {'apiVersion':'eksctl.io/v1alpha5','kind':'ClusterConfig',
-  'metadata':{'name':'classroom-main','region':'ap-northeast-2'},
+  'metadata':{'name':'classroom-main','region':'ap-southeast-2'},
   'iam':{'podIdentityAssociations':[{'namespace':'argocd',
     'serviceAccountName':'argocd-image-updater','createServiceAccount':True,
     'roleName':'classroom-main-image-updater','permissionPolicy':policy}]}}
@@ -215,12 +219,14 @@ config 예시에는 확인한 기존 team1~team8 principal이 이미 들어 있�
 학생 IAM에는 최소한 해당 클러스터 ARN의 `eks:DescribeCluster`와 필요한 SSO/AssumeRole
 접속 권한이 있어야 한다. Kubernetes 권한은 Access Entry → group → RoleBinding으로 준다.
 추가 AmazonEKSAdminPolicy나 AmazonEKSClusterAdminPolicy를 학생에게 붙이지 않는다.
+기존 ECR PowerUser에는 모든 저장소의 PutImage가 포함되어 있다. 예시 ECR을 덮어쓰면 GitOps 배포도 바뀌므로,
+강사 예시 `idea-support-server` 저장소만 학생 업로드를 명시적으로 거절한다. 이미지 조회와 다른 저장소의 기존 권한은 유지한다.
 
 ```bash
 python3 deploy/classroom-eks/prepare.py --config .local/classroom-eks/config.json
 python3 deploy/classroom-eks/student-access.py --config .local/classroom-eks/config.json
 # 계획의 principal과 팀 배정 확인 후:
-python3 deploy/classroom-eks/student-access.py --config .local/classroom-eks/config.json --apply --grant-describe
+python3 deploy/classroom-eks/student-access.py --config .local/classroom-eks/config.json --apply --grant-describe --protect-gitops-ecr
 kubectl apply -f .local/classroom-eks/rendered/student-bindings.yaml
 ```
 
@@ -234,7 +240,7 @@ Lens에서 All namespaces 대신 `team`, `teamN`을 선택한다.
 ```powershell
 aws configure --profile classroom-team1
 aws sts get-caller-identity --profile classroom-team1
-aws eks update-kubeconfig --region ap-northeast-2 --name classroom-main --alias classroom-team1 --profile classroom-team1
+aws eks update-kubeconfig --region ap-southeast-2 --name classroom-main --alias classroom-team1 --profile classroom-team1
 kubectl --context classroom-team1 -n team get pods
 kubectl --context classroom-team1 -n team1 get pods
 kubectl --context classroom-team1 auth can-i get secrets -n argocd
@@ -242,7 +248,7 @@ kubectl --context classroom-team1 auth can-i delete pods -n team
 kubectl --context classroom-team1 auth can-i get pods -n team2
 ```
 
-configure 프롬프트에는 이미 받은 자기 팀 access key ID·secret access key, region ap-northeast-2, output json을 입력한다.
+configure 프롬프트에는 이미 받은 자기 팀 access key ID·secret access key, region ap-southeast-2, output json을 입력한다.
 새 AWS 계정을 가입하거나 강사 키를 입력하지 않는다. STS의 Account가 950177940921, Arn의 사용자가 자기 팀인지 확인한다.
 SSO를 쓰는 학생만 별도 SSO profile로 로그인한다. 클러스터 region과 SSO region은 같다고 가정하지 않는다.
 Lens는 로컬 `%USERPROFILE%\.kube\config`를 등록한다. 프리미엄 AWS 자동 검색은 필수가 아니다.
@@ -251,7 +257,9 @@ AWS CLI 실행 경로가 Lens의 PATH에 있어야 하고 SSO 만료 시 재로�
 
 예상 결과: 예시 team의 mysql-0·spring Pod 1개 조회, 본인 team1은 No resources found,
 다른 팀·Secret·삭제 권한은 no. 인증 정보 없이 kubeconfig 파일만 복사해도 접속되지 않는다.
-EKS publicAccessCIDRs에 학생의 실제 egress 공인 IP 또는 학과 VPN 출구가 있어야 한다.
+이번 수업은 고정 IP 없이 IAM 키로 접속하므로 publicAccessCIDRs는 0.0.0.0/0이다.
+팀별 기존 키는 개별 전달하고, 유출되면 IAM에서 비활성화·회전한다. kubeconfig에는 비밀 키를 넣지 않는다.
+IP를 제한하는 구성으로 바꾼 경우에는 학생의 실제 egress 공인 IP 또는 VPN 출구를 허용 목록에 추가해야 한다.
 
 ## 8. 수업 시연·판정·복구
 
@@ -259,7 +267,7 @@ EKS publicAccessCIDRs에 학생의 실제 egress 공인 IP 또는 학과 VPN 출
 2. 강사가 `kubectl -n team port-forward svc/spring 18080:8080` 후 `/common/health` 확인.
 3. 이 저장소는 prod에서 Swagger UI가 꺼져 있다. DB 쓰기/읽기는 `docs/API_SPEC.md`의 실제 인증·등록 API로 확인한다.
 4. 수업용 AI_MODE=mock은 의도적이다. 실제 Gemini 호출 성공으로 기록하지 않는다.
-5. 코드 main의 작은 응답 변경 → 검사 통과 → 서울 ECR latest 갱신.
+5. 코드 main의 작은 응답 변경 → 검사 통과 → 시드니 ECR latest 갱신.
 6. Image Updater 로그·GitOps 브랜치 kustomization digest 커밋·Argo revision·ReplicaSet·Lens imageID 순으로 기록.
 7. Spring만 새 Pod로 교체되고 MySQL Pod/볼륨·team1~team8의 빈 상태는 유지되는지 확인.
 8. 실패 이미지라면 자동 Git 롤백되지 않는다. 기존 Pod가 남더라도 DB migration의 부작용은 별도다.

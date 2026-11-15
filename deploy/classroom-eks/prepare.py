@@ -16,8 +16,8 @@ HERE = Path(__file__).resolve().parent
 def render(config, output):
     if config["account_id"] != "950177940921":
         raise ValueError("This bundle is restricted to the classroom account 950177940921")
-    if config["region"] != "ap-northeast-2" or config["cluster_name"] != "classroom-main":
-        raise ValueError("This lesson targets classroom-main in Seoul only")
+    if config["region"] != "ap-southeast-2" or config["cluster_name"] != "classroom-main":
+        raise ValueError("This lesson targets classroom-main in Sydney only")
     if not re.fullmatch(r"1\.\d+", config["eks_version"]):
         raise ValueError("Set a currently STANDARD_SUPPORT EKS version")
     if not re.fullmatch(r"sha256:[0-9a-f]{64}", config["bootstrap_digest"]):
@@ -26,8 +26,8 @@ def render(config, output):
     if not cidrs:
         raise ValueError("At least one administrator/classroom public CIDR is required")
     for cidr in cidrs:
-        if ipaddress.ip_network(cidr).prefixlen == 0:
-            raise ValueError("Do not expose the EKS API to the entire Internet")
+        if ipaddress.ip_network(cidr).prefixlen == 0 and config.get("allow_public_api_from_anywhere") is not True:
+            raise ValueError("Public API from any IP requires explicit allow_public_api_from_anywhere=true and IAM/RBAC")
     students = config.get("students", [])
     for student in students:
         if student["namespace"] not in [f"team{i}" for i in range(1, 9)]:
@@ -67,7 +67,7 @@ def render(config, output):
         "apiVersion": "eksctl.io/v1alpha5", "kind": "ClusterConfig",
         "metadata": {"name": config["cluster_name"], "region": config["region"],
                      "version": config["eks_version"], "tags": {"purpose": "classroom-gitops"}},
-        "availabilityZones": ["ap-northeast-2a", "ap-northeast-2c"],
+        "availabilityZones": ["ap-southeast-2a", "ap-southeast-2c"],
         "accessConfig": {"authenticationMode": "API_AND_CONFIG_MAP"},
         "vpc": {"nat": {"gateway": "Disable"},
                 "clusterEndpoints": {"privateAccess": True, "publicAccess": True},

@@ -29,7 +29,7 @@ def main():
     kube = ["kubectl", "--kubeconfig", str(args.kubeconfig), "--context", args.context]
     cluster_config = json.loads(subprocess.check_output(kube + ["config", "view", "--minify", "-o", "json"]))
     cluster_name = cluster_config["contexts"][0]["context"]["cluster"]
-    if cluster_name != "arn:aws:eks:ap-northeast-2:950177940921:cluster/classroom-main":
+    if cluster_name != "arn:aws:eks:ap-southeast-2:950177940921:cluster/classroom-main":
         raise SystemExit("Refusing to modify a different Kubernetes cluster")
 
     def exists(namespace, name):
