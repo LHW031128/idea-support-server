@@ -6,5 +6,5 @@ resources:
   - spring.yaml
 images:
   - name: 950177940921.dkr.ecr.ap-southeast-2.amazonaws.com/idea-support-server
-    digest: sha256:330b00bcb5e1adf68924dd47137a9d5ad968bebddf45e0bcd99b4b7813217e86
+    digest: sha256:f62e5ac2a10482483121adfc00257d4fc2a7c34bc6bed9347994ec1a5d666ab9
     newTag: latest
