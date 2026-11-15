@@ -1,0 +1,19 @@
+apiVersion: argocd-image-updater.argoproj.io/v1alpha1
+kind: ImageUpdater
+metadata:
+  name: classroom-team
+  namespace: argocd
+spec:
+  writeBackConfig:
+    method: git:secret:gitops-write
+    gitConfig:
+      branch: __GIT_BRANCH__
+      writeBackTarget: kustomization
+  applicationRefs:
+    - namePattern: classroom-team
+      images:
+        - alias: spring
+          imageName: __IMAGE__:latest
+          commonUpdateSettings:
+            updateStrategy: digest
+            platforms: [linux/amd64]

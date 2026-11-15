@@ -1,0 +1,23 @@
+configs:
+  cm:
+    admin.enabled: true
+    accounts.students: login
+    timeout.reconciliation: 120s
+    timeout.reconciliation.jitter: 30s
+  rbac:
+    policy.default: role:classroom-empty
+    policy.csv: |
+      p, role:classroom-view, applications, get, classroom/classroom-team, allow
+      p, role:classroom-view, logs, get, classroom/classroom-team, allow
+      g, students, role:classroom-view
+server:
+  service:
+    type: ClusterIP
+  ingress:
+    enabled: false
+dex:
+  enabled: false
+notifications:
+  enabled: false
+applicationSet:
+  enabled: false

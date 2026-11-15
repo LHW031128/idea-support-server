@@ -1,0 +1,13 @@
+{
+  "account_id": "950177940921",
+  "region": "ap-northeast-2",
+  "cluster_name": "classroom-main",
+  "eks_version": "REPLACE_WITH_STANDARD_SUPPORT_VERSION",
+  "api_allowed_cidrs": ["REPLACE_WITH_ADMIN_OR_CLASSROOM_PUBLIC_IP/32"],
+  "git_repository": "https://github.com/MinQDU014/idea-support-server.git",
+  "git_branch": "codex/classroom-gitops",
+  "git_path": "deploy/classroom-eks/apps/team",
+  "ecr_repository": "idea-support-server",
+  "bootstrap_digest": "REPLACE_WITH_EXISTING_SHA256_DIGEST",
+  "students": []
+}
