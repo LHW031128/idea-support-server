@@ -120,7 +120,7 @@ readinessProbe:
 
 이 파일이 EKS까지 전달되는 순서를 실제 파일로 따라가 봅시다.
 
-1. **Argo CD의 연결 설정** — [deploy/classroom-eks/argocd/application.yaml](https://github.com/MinQDU014/idea-support-server/blob/main/deploy/classroom-eks/argocd/application.yaml)
+**1. Argo CD의 연결 설정** — [deploy/classroom-eks/argocd/application.yaml](https://github.com/MinQDU014/idea-support-server/blob/main/deploy/classroom-eks/argocd/application.yaml)
 
    이 파일을 등록해 만든 `classroom-team` Application이 이미 클러스터에 있습니다. Argo CD는 여기에 저장된 저장소·브랜치·폴더를 보고 Git을 계속 확인합니다.
 
@@ -137,7 +137,7 @@ readinessProbe:
 
    `targetRevision: main`은 읽을 브랜치, `path`는 읽을 폴더입니다. `destination`은 적용할 클러스터와 namespace입니다. Application 파일은 처음 연결할 때 등록하는 설정이고, 배포 때마다 확인하는 대상은 `path`에 적힌 폴더입니다.
 
-2. **그 폴더에서 묶을 파일 선택** — [deploy/classroom-eks/apps/team/kustomization.yaml](https://github.com/MinQDU014/idea-support-server/blob/main/deploy/classroom-eks/apps/team/kustomization.yaml)
+**2. 그 폴더에서 묶을 파일 선택** — [deploy/classroom-eks/apps/team/kustomization.yaml](https://github.com/MinQDU014/idea-support-server/blob/main/deploy/classroom-eks/apps/team/kustomization.yaml)
 
    ```yaml
    apiVersion: kustomize.config.k8s.io/v1beta1
@@ -152,11 +152,11 @@ readinessProbe:
 
    실제 파일 아래쪽의 `images.digest`에는 사용할 이미지의 고유 번호도 들어 있습니다. Kustomize가 이 값을 Spring Deployment의 이미지에 반영해 최종 YAML을 만듭니다.
 
-3. **Kubernetes API에 등록** — Argo CD가 최종 YAML을 EKS의 Kubernetes API에 전달합니다. API 서버는 `kind: Deployment` 문서를 Spring Deployment로, `kind: Service` 문서를 Spring Service로 저장합니다.
+**3. Kubernetes API에 등록** — Argo CD가 최종 YAML을 EKS의 Kubernetes API에 전달합니다. API 서버는 `kind: Deployment` 문서를 Spring Deployment로, `kind: Service` 문서를 Spring Service로 저장합니다.
 
-4. **Pod 만들기** — Deployment 컨트롤러가 현재 Pod와 설정을 비교합니다. 새 이미지가 들어간 Pod 설정이 생기면 새 ReplicaSet을 만들고, ReplicaSet 컨트롤러가 새 Pod를 만듭니다. 스케줄러가 실행할 Node를 고르면 그 Node의 kubelet이 이미지를 받아 Spring을 시작합니다.
+**4. Pod 만들기** — Deployment 컨트롤러가 현재 Pod와 설정을 비교합니다. 새 이미지가 들어간 Pod 설정이 생기면 새 ReplicaSet을 만들고, ReplicaSet 컨트롤러가 새 Pod를 만듭니다. 스케줄러가 실행할 Node를 고르면 그 Node의 kubelet이 이미지를 받아 Spring을 시작합니다.
 
-5. **새 Pod로 요청 연결하기** — `/common/health` 검사에 통과한 새 Pod가 Ready가 되면 Service의 연결 대상에 들어갑니다. 새 Pod가 Ready 상태를 10초 유지하면 Deployment가 기존 ReplicaSet의 Pod 수를 줄이고 기존 Pod가 종료됩니다.
+**5. 새 Pod로 요청 연결하기** — `/common/health` 검사에 통과한 새 Pod가 Ready가 되면 Service의 연결 대상에 들어갑니다. 새 Pod가 Ready 상태를 10초 유지하면 Deployment가 기존 ReplicaSet의 Pod 수를 줄이고 기존 Pod가 종료됩니다.
 
 Spring의 새 이미지가 바뀌어도 MySQL StatefulSet의 설정은 그대로여서 MySQL Pod와 저장 공간은 계속 사용합니다.
 
@@ -212,7 +212,7 @@ main의 Spring 코드 변경
 
 **왜 Image Updater의 커밋에서 빌드가 다시 돌지 않을까?** `.github/workflows/deploy.yaml`에 `deploy/classroom-eks/**`와 `docs/**`의 변경만 있는 경우를 제외하도록 설정했습니다. 따라서 새 digest를 기록한 커밋은 Argo CD가 읽고, Spring 코드가 포함된 커밋은 GitHub Actions가 검사·빌드합니다.
 
-예전에는 코드 `main`과 배포 설정 `codex/classroom-gitops`를 분리했습니다. 이는 자동 이미지 커밋을 코드 빌드와 나누는 구성 방법 중 하나입니다. Argo CD가 별도 브랜치를 필수로 요구하는 것은 아닙니다. 이번 수업에서는 파일을 찾고 변경 과정을 따라가기 쉽도록 main으로 통합했습니다.
+예전에는 코드 `main`과 배포 설정 `codex/classroom-gitops`를 분리했습니다. 이는 자동 이미지 커밋을 코드 빌드와 나누는 구성 방법 중 하나입니다. 이번 수업에서는 파일을 찾고 변경 과정을 따라가기 쉽도록 main으로 통합했습니다.
 
 
 ### Argo CD 화면에서 읽을 두 가지
@@ -285,6 +285,17 @@ kubectl --context classroom-team1 get pods -n team
 
 Lens에서 **Local Kubeconfigs → Add kubeconfig → Sync file(s)**를 선택하고 `%USERPROFILE%\.kube\config`를 등록합니다. `classroom-team1`에 연결한 뒤 namespace를 **team**으로 고릅니다.
 
+**Lens에서 볼 공간을 고르기**
+
+| namespace | Pods | Workloads → Deployments |
+| --- | --- | --- |
+| `team` | MySQL과 Spring | `spring` |
+| `argocd` | Argo CD와 Image Updater | `argocd-server`, `argocd-repo-server`, `argocd-redis`, Image Updater 등 |
+| 본인 `team1`~`team8` | 아직 앱을 올리지 않은 공간 | 비어 있음 |
+
+`argocd-application-controller`는 **StatefulSets**에서 볼 수 있습니다. 사용하지 않는 `argocd-applicationset-controller`는 Pod 수가 0입니다. 학생 IAM `team1`~`team8`은 같은 수업 조회 권한을 사용합니다. 권한이 반영되기 전부터 Lens를 열어 두었다면 연결을 끊었다가 다시 연결하고 namespace를 다시 선택하세요.
+
+
 **Workloads → Pods**에서 `mysql-0`과 `spring-...`이 보이면 연결된 것입니다. 배포 전 Spring Pod 이름을 적어 두세요.
 
 ### ③ 내 PC에서 Argo CD와 health 화면 열기
@@ -344,10 +355,10 @@ class DeployDemoController {
 
 ### ② 배포 전 화면 나란히 열기
 
-1. **GitHub Actions** — 이번 커밋의 실행 결과
-2. **Argo CD → classroom-team** — 배포 상태와 리소스 트리
-3. **Lens → team → Pods** — Pod 이름, 생성 시간, Ready
-4. **health 응답 창** — 배포 중에도 요청이 이어지는지 확인
+**1. GitHub Actions** — 이번 커밋의 실행 결과
+**2. Argo CD → classroom-team** — 배포 상태와 리소스 트리
+**3. Lens → team → Pods** — Pod 이름, 생성 시간, Ready
+**4. health 응답 창** — 배포 중에도 요청이 이어지는지 확인
 
 **실행 위치: 새 Windows PowerShell 창, 어느 폴더에서나 실행합니다.** 아래 코드 전체를 붙여넣어 health 응답을 계속 확인합니다. `Ctrl+C`로 끝냅니다.
 
