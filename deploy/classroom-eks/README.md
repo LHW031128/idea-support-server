@@ -332,3 +332,18 @@ Retain인 EBS는 클러스터 삭제 뒤에도 비용이 남는다. 기존 Light
 ## 검증 기록
 
 실제 계정의 배포·학생 접속 검증 기록은 [비공개 Notion 설치 부록](https://app.notion.com/p/project-2026-01/2df9fa2a819d8328a4df0156664375a2)에서 관리한다. 공개 저장소에는 설치 절차와 구성만 보관한다.
+
+
+## Lens에서 Argo CD 서버 포트 연결
+
+학생 그룹 team1~team8은 Argo CD 서버 Pod에만 포트 연결을 할 수 있다. 다른 Argo 구성요소와 MySQL에는 이 권한을 추가하지 않는다. 서버 Pod가 교체되면 관리자가 아래 명령을 다시 실행해 현재 Pod 이름을 반영한다.
+
+```bash
+python3 deploy/classroom-eks/grant-argocd-portforward.py --kubeconfig "$KUBECONFIG" --context classroom-main-admin
+```
+
+Lens에서 argocd-server Pod의 8080 포트를 선택하고 Local port를 18080처럼 비어 있는 값으로 지정한다. Argo CD 서버는 TLS를 사용하므로 HTTP 요청은 HTTPS로 리다이렉트된다. 수업의 HTTP 브라우저 접속은 기존 kubectl proxy 주소를 사용한다.
+
+Deployment 조회는 team과 argocd namespace의 RoleBinding으로 허용한다. Lens의 All namespaces 전체 조회는 허용 범위와 다르다. Cluster Settings의 Namespaces에서 접근할 수업 공간을 지정해 사용한다.
+
+참고: https://kubernetes.io/docs/tasks/access-application-cluster/port-forward-access-application-cluster/

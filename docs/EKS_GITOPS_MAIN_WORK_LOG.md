@@ -26,3 +26,11 @@
 - argocd namespace의 관찰용 Role과 8개 그룹의 RoleBinding을 적용했다. 실제 team1 인증으로 Pod·Deployment 조회를 확인했고, 8개 그룹별로 Pod·Deployment·로그 허용 및 Secret·삭제 거부를 확인했다.
 - 권한 정의는 templates/platform/argocd-observer.yaml에 보관한다. AWS 관리자 정책이나 공용 관리자 키는 추가하지 않았다.
 - 세부 실행 결과는 로컬·비공개 설치 부록에서 관리한다.
+
+## 2026-11-18 Lens 포트 연결
+
+- 사용자가 학생 8개 계정의 Argo CD 서버 Pod 포트 연결을 명시적으로 승인했다.
+- grant-argocd-portforward.py는 현재 Argo CD 서버 Pod 이름을 찾아 해당 Pod의 get/create pods/portforward만 허용한다. 다른 Pod와 DB는 포함하지 않는다.
+- 갱신한 수업 관리자 세션으로 Role과 RoleBinding을 적용했다. 8개 그룹의 인가 확인과 실제 team1 인증의 로컬 18080 연결을 통과했다. Argo CD 서버의 HTTP 307 HTTPS 응답을 확인했다.
+- 기존 8080 포트 점유도 발견했다. 다른 프로세스를 종료하지 않고 18080을 사용했다.
+- 전체 namespace의 workload 조회 제안은 자동 승인 검토에서 차단되어 적용하지 않았다. 실제 배포 정의는 존재하며 namespace별 조회는 허용돼 있다.
