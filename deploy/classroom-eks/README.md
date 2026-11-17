@@ -119,6 +119,7 @@ kubectl apply -f .local/classroom-eks/rendered/platform/storage.yaml
 kubectl apply -f .local/classroom-eks/rendered/platform/observer.yaml
 kubectl apply -f .local/classroom-eks/rendered/platform/browser-access.yaml
 kubectl apply -f .local/classroom-eks/rendered/platform/argocd-observer.yaml
+kubectl apply -f .local/classroom-eks/rendered/platform/workload-catalog.yaml
 python3 deploy/classroom-eks/bootstrap-secrets.py app --kubeconfig "$KUBECONFIG"
 ```
 
@@ -249,7 +250,7 @@ kubectl apply -f .local/classroom-eks/rendered/student-bindings.yaml
 
 현재 student bindings는 **본인 teamN + 예시 team**에 읽기·로그만 허용한다.
 Lens의 namespace 선택을 위해 namespace 이름 목록만 전역 조회를 허용한다.
-노드·지표·다른 팀 앱은 조회 범위에 포함하지 않는다. `platform/argocd-observer.yaml`은 classroom:team1~team8 그룹 모두에 argocd의 Pod·Deployment·StatefulSet·로그·이벤트 조회를 허용한다. Secret·쓰기·exec 권한은 없다.
+노드·지표·다른 팀의 Pod·로그는 조회 범위에 포함하지 않는다. 배포 목록 네 종류의 전체 namespace 조회는 별도의 workload-catalog Role로 허용한다. `platform/argocd-observer.yaml`은 classroom:team1~team8 그룹 모두에 argocd의 Pod·Deployment·StatefulSet·로그·이벤트 조회를 허용한다. Secret·쓰기·exec 권한은 없다.
 Lens에서 All namespaces 대신 `team`, `teamN`, `argocd` 중 확인할 namespace를 선택한다.
 
 학생 PowerShell:
@@ -344,6 +345,6 @@ python3 deploy/classroom-eks/grant-argocd-portforward.py --kubeconfig "$KUBECONF
 
 Lens에서 argocd-server Pod의 8080 포트를 선택하고 Local port를 18080처럼 비어 있는 값으로 지정한다. Argo CD 서버는 TLS를 사용하므로 HTTP 요청은 HTTPS로 리다이렉트된다. 수업의 HTTP 브라우저 접속은 기존 kubectl proxy 주소를 사용한다.
 
-Deployment 조회는 team과 argocd namespace의 RoleBinding으로 허용한다. Lens의 All namespaces 전체 조회는 허용 범위와 다르다. Cluster Settings의 Namespaces에서 접근할 수업 공간을 지정해 사용한다.
+Deployment·StatefulSet·ReplicaSet·DaemonSet의 get/list/watch는 `platform/workload-catalog.yaml`의 ClusterRoleBinding으로 모든 수업 namespace에서 허용한다. Lens의 Deployments에서 All namespaces를 고르면 Spring·Argo CD·시스템 배포 목록이 함께 보인다. Pod·로그 조회 범위는 기존 team·본인 팀·argocd이며, Secret·생성·수정·삭제 권한은 추가하지 않는다.
 
 참고: https://kubernetes.io/docs/tasks/access-application-cluster/port-forward-access-application-cluster/
