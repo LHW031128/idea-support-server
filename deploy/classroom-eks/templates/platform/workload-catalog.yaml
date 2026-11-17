@@ -1,0 +1,26 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: classroom-workload-catalog
+rules:
+  - apiGroups: [apps]
+    resources: [deployments, statefulsets, replicasets, daemonsets]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: classroom-workload-catalog
+subjects:
+  - {kind: Group, name: "classroom:team1", apiGroup: rbac.authorization.k8s.io}
+  - {kind: Group, name: "classroom:team2", apiGroup: rbac.authorization.k8s.io}
+  - {kind: Group, name: "classroom:team3", apiGroup: rbac.authorization.k8s.io}
+  - {kind: Group, name: "classroom:team4", apiGroup: rbac.authorization.k8s.io}
+  - {kind: Group, name: "classroom:team5", apiGroup: rbac.authorization.k8s.io}
+  - {kind: Group, name: "classroom:team6", apiGroup: rbac.authorization.k8s.io}
+  - {kind: Group, name: "classroom:team7", apiGroup: rbac.authorization.k8s.io}
+  - {kind: Group, name: "classroom:team8", apiGroup: rbac.authorization.k8s.io}
+roleRef:
+  kind: ClusterRole
+  name: classroom-workload-catalog
+  apiGroup: rbac.authorization.k8s.io

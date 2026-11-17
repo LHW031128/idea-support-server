@@ -34,3 +34,10 @@
 - 갱신한 수업 관리자 세션으로 Role과 RoleBinding을 적용했다. 8개 그룹의 인가 확인과 실제 team1 인증의 로컬 18080 연결을 통과했다. Argo CD 서버의 HTTP 307 HTTPS 응답을 확인했다.
 - 기존 8080 포트 점유도 발견했다. 다른 프로세스를 종료하지 않고 18080을 사용했다.
 - 전체 namespace의 workload 조회 제안은 자동 승인 검토에서 차단되어 적용하지 않았다. 실제 배포 정의는 존재하며 namespace별 조회는 허용돼 있다.
+
+## 2026-11-18 Lens 전체 배포 목록 조회 승인·적용
+
+- 앞서 차단된 전체 namespace 조회에 대해 사용자가 team1~team8의 Deployment·StatefulSet·ReplicaSet·DaemonSet 조회를 명시적으로 승인했다.
+- platform/workload-catalog.yaml을 적용했다. get/list/watch만 있으며 Secret·생성·수정·삭제 규칙은 없다.
+- 실제 team1 인증으로 전체 Deployment·StatefulSet 목록을 확인했다. Lens의 argocd 필터에서도 Argo CD Deployment 5개가 표시됐다. Spring은 team의 Deployment이고 MySQL·Argo application-controller는 StatefulSet이다.
+- Notion 본문은 main의 실제 파일 연결과 YAML → Kubernetes API → 컨트롤러 → Pod 과정을 설명하도록 다시 저장했다. 기존 아키텍처 이미지 두 개를 보존하고 중복 섹션이 없음을 다시 읽어 확인했다.
