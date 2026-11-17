@@ -118,6 +118,7 @@ kubectl apply -f .local/classroom-eks/rendered/platform/namespaces.yaml
 kubectl apply -f .local/classroom-eks/rendered/platform/storage.yaml
 kubectl apply -f .local/classroom-eks/rendered/platform/observer.yaml
 kubectl apply -f .local/classroom-eks/rendered/platform/browser-access.yaml
+kubectl apply -f .local/classroom-eks/rendered/platform/argocd-observer.yaml
 python3 deploy/classroom-eks/bootstrap-secrets.py app --kubeconfig "$KUBECONFIG"
 ```
 
@@ -154,20 +155,14 @@ kubectl -n argocd get secret argocd-admin-credentials -o jsonpath='{.data.passwo
 ```
 
 화면 공유 중 실행하지 않는다. Kubernetes Secret의 base64는 암호화가 아니며,
-학생 Role에는 Secret 조회·Pod exec·쓰기·argocd namespace 권한을 주지 않는다.
+학생 Role에는 Secret 조회·Pod exec·쓰기를 허용하지 않는다. argocd에서는 Pod·Deployment·StatefulSet·로그·이벤트를 조회할 수 있다.
 Helm upgrade 때 기존 `argocd-secret` 관리 항목의 소유권 충돌이 없는지 확인한다.
 
 ## 5. Git 연결·GitOps 브랜치
 
-이미지 업로드를 실행하는 **코드 main**과 배포 정의만 바뀌는 **main**를 나눈다.
-이렇게 해야 Image Updater의 Git 커밋이 다시 앱 빌드를 일으키는 루프를 피한다.
+앱 코드와 배포 정의를 모두 **main**에서 관리한다. `.github/workflows/deploy.yaml`의 `paths-ignore`가 배포 정의·문서만 변경된 커밋의 이미지 빌드를 제외한다. Image Updater는 main의 `apps/team/kustomization.yaml`에 digest를 기록하고, Argo CD는 main의 `apps/team`을 읽는다.
 
-별도 깨끗한 checkout에서 `main`를 만들고, 렌더링한
-`apps/team/{mysql,spring,kustomization}.yaml` 세 파일을 해당 브랜치의
-`deploy/classroom-eks/apps/team/`에 복사해 commit/push한다.
-템플릿 폴더가 아니라 **자리표시자가 제거된 렌더 결과**를 올린다. Secret·kubeconfig는 올리지 않는다.
-현재 작업 폴더를 강제로 reset하거나 기존 dev 수정 사항을 포함하지 않는다.
-이미 브랜치가 있으면 새로 덮어쓰지 말고 최신 파일을 확인한다.
+처음 설치할 때 `apps/team/{mysql,spring,kustomization}.yaml`을 main의 `deploy/classroom-eks/apps/team/`에 올린다. 템플릿이 아닌 자리표시자가 제거된 정의를 사용한다. 기존 설치의 파일이 이미 있다면 이미지 digest와 DB 설정을 유지한다.
 
 ```bash
 python3 deploy/classroom-eks/bootstrap-secrets.py git --kubeconfig "$KUBECONFIG"
@@ -185,7 +180,7 @@ read 전용 연결만으로는 Image Updater의 commit/push가 되지 않는다.
 `bootstrap-secrets.py git --repository git@github.com:MinQDU014/idea-support-server.git --ssh-key 개인키경로 --kubeconfig "$KUBECONFIG"`로 연결한다.
 GitHub에 등록하는 것은 공개 키이고 개인 키는 argocd Secret에만 저장한다. Argo CD의 GitHub known-hosts 검증을 유지한다.
 브랜치 보호가 직접 push를 막으면 write-back PR 방식으로 바꾸고 승인 뒤 합친다.
-학생은 이 브랜치·관리자 토큰에 쓰기 권한을 받지 않는다.
+학생은 관리자 토큰을 사용하지 않는다. 코드 변경은 팀의 개발 절차에 따라 PR로 main에 반영한다.
 
 ## 6. ECR 읽기 역할·Image Updater
 
@@ -254,8 +249,8 @@ kubectl apply -f .local/classroom-eks/rendered/student-bindings.yaml
 
 현재 student bindings는 **본인 teamN + 예시 team**에 읽기·로그만 허용한다.
 Lens의 namespace 선택을 위해 namespace 이름 목록만 전역 조회를 허용한다.
-노드·지표·argocd 리소스·다른 팀 앱은 금지하며 Lens 일부 메뉴의 Forbidden은 정상이다.
-Lens에서 All namespaces 대신 `team`, `teamN`을 선택한다.
+노드·지표·다른 팀 앱은 조회 범위에 포함하지 않는다. `platform/argocd-observer.yaml`은 classroom:team1~team8 그룹 모두에 argocd의 Pod·Deployment·StatefulSet·로그·이벤트 조회를 허용한다. Secret·쓰기·exec 권한은 없다.
+Lens에서 All namespaces 대신 `team`, `teamN`, `argocd` 중 확인할 namespace를 선택한다.
 
 학생 PowerShell:
 
@@ -283,7 +278,8 @@ AWS CLI 실행 경로가 Lens의 PATH에 있어야 하고 SSO 만료 시 재로�
 2. 자기 PC의 `%USERPROFILE%\.kube\config`를 선택한다. 최신 버전은 Preferences → Integrations → Local Kubeconfigs → Watch files & folders로 표시될 수 있다.
 3. Navigator → Local Kubeconfigs → classroom-team1을 열고 Workloads → Pods를 선택한다.
 4. namespace 선택에서 default·All namespaces를 해제하고 **team만** 선택한다. 최초 화면의 default는 학생 권한 범위가 아니므로 Failed to load items가 나올 수 있다.
-5. mysql-0과 spring-…의 Running·Ready 상태를 확인한다. 자기 team1을 선택하면 빈 목록이 정상이다.
+5. team의 mysql-0과 spring-…의 Running·Ready 상태를 확인한다. 자기 team1에는 아직 앱이 없다.
+6. argocd를 선택하면 Argo CD 구성요소의 Pod·Deployment가 보인다. application-controller는 StatefulSet이며, 사용하지 않는 applicationset-controller는 replicas 0이다.
 
 학생은 자기 팀 키로 연결한 뒤 예시 team의 Pod와 로그가 보이는지 확인한다. PC별 AWS CLI 설치와 학교 방화벽 조건도 대조한다.
 근거: [Lens 로컬 클러스터 등록](https://docs.lenshq.io/k8slens/getting-started/add-clusters/add-local-cluster/).

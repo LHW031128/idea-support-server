@@ -15,3 +15,14 @@
 - Spring·MySQL Pod UID와 PVC가 전환 전후 유지되는지.
 
 업데이트 위치: main의 deploy/classroom-eks/apps/team, argocd, .github/workflows/deploy.yaml, docs/WEEK12_EKS_GITOPS.md 및 프로젝트관리지원기술 Notion CD-2.
+
+## 2026-11-18 적용 결과
+
+- PR #4로 배포 정의·연결 설정·설치 파일·학생 설명을 main에 통합했다.
+- live Argo Application의 읽기 브랜치와 Image Updater의 Git 기록 브랜치를 main으로 전환했다. Synced·Healthy와 Image Updater Ready를 확인했다.
+- 전환 전후 Spring·MySQL Pod와 PVC의 식별자가 유지됐다. 앱 이미지와 DB 설정은 변경하지 않았다.
+- 기존 정의와 main 정의의 Kustomize 결과가 같은 4개 리소스임을 확인했다. 앱 변경과 배포 정의·문서 변경에 대한 CI 경로 조건을 확인했다.
+- 학생 IAM team1~team8의 EKS Access Entry가 각 classroom:teamN 그룹에 연결됨을 확인했다.
+- argocd namespace의 관찰용 Role과 8개 그룹의 RoleBinding을 적용했다. 실제 team1 인증으로 Pod·Deployment 조회를 확인했고, 8개 그룹별로 Pod·Deployment·로그 허용 및 Secret·삭제 거부를 확인했다.
+- 권한 정의는 templates/platform/argocd-observer.yaml에 보관한다. AWS 관리자 정책이나 공용 관리자 키는 추가하지 않았다.
+- 세부 실행 결과는 로컬·비공개 설치 부록에서 관리한다.
