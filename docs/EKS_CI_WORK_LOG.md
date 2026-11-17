@@ -19,3 +19,10 @@
 - 기존 team1 IAM 키로 EKS·Lens에서 team의 MySQL·Spring을 확인했고 다른 팀·Secret은 거절됐다. Argo 관리자와 학생 로그인은 성공했으며 학생 Sync 요청은 403이다.
 - 공개 설치 구성·일반 강의 원본은 codex/classroom-eks-preparation에 있다. 실제 운영 검증 JSON은 사용자 승인에 따라 비공개 Notion 설치 부록 https://app.notion.com/p/419b4057395f81dab0d4d4246cc762b9 에만 첨부한다.
 - 이 완료 기록은 skip ci 문서 커밋이다. 후속 문서 SHA를 실제 배포 이미지 소스 50f307a…와 혼동하지 않는다.
+
+
+## 2026-11-18 main에 배포 정의 통합
+
+- 배포 파일을 찾기 쉽도록 main의 deploy/classroom-eks/apps/team으로 통합하고, Application의 읽기 브랜치와 Image Updater의 쓰기 브랜치도 main에 맞춘다.
+- deploy.yaml의 push·pull_request 경로 제외 조건에 deploy/classroom-eks/**와 docs/**를 추가한다. 배포 digest 자동 커밋에서 앱 이미지를 다시 만드는 순환을 끊는다.
+- 기존 2026-11-16 검증 이력은 당시 별도 브랜치 구성의 기록으로 보존한다. 현재 구성의 설명과 갱신 위치는 main의 docs/WEEK12_EKS_GITOPS.md와 deploy/classroom-eks/README.md다.

@@ -1,0 +1,8 @@
+Version: "2012-10-17"
+Statement:
+  - Effect: Allow
+    Action: ecr:GetAuthorizationToken
+    Resource: "*"
+  - Effect: Allow
+    Action: [ecr:BatchGetImage, ecr:GetDownloadUrlForLayer, ecr:BatchCheckLayerAvailability, ecr:DescribeImages, ecr:ListImages]
+    Resource: arn:aws:ecr:__REGION__:950177940921:repository/__ECR_REPOSITORY__

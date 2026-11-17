@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: classroom-team
+  namespace: argocd
+# No cascading deletion finalizer on the database teaching application.
+spec:
+  project: classroom
+  source:
+    repoURL: git@github.com:MinQDU014/idea-support-server.git
+    targetRevision: main
+    path: deploy/classroom-eks/apps/team
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: team
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+    syncOptions:
+      - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 1m

@@ -4,9 +4,15 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - "deploy/classroom-eks/**"
+      - "docs/**"
   pull_request:
     branches:
       - main
+    paths-ignore:
+      - "deploy/classroom-eks/**"
+      - "docs/**"
 
 env:
   AWS_REGION: ap-southeast-2
