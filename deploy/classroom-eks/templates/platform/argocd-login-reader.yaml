@@ -1,0 +1,35 @@
+# This namespace contains only the shared Argo CD administrator login Secret.
+# Argo CD installation, repository keys and Helm Secrets remain in argocd.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: argocd-login
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: classroom-argocd-login-reader
+  namespace: argocd-login
+rules:
+  - apiGroups: [""]
+    resources: [secrets]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: classroom-argocd-login-readers
+  namespace: argocd-login
+subjects:
+  - {kind: Group, name: "classroom:team1", apiGroup: rbac.authorization.k8s.io}
+  - {kind: Group, name: "classroom:team2", apiGroup: rbac.authorization.k8s.io}
+  - {kind: Group, name: "classroom:team3", apiGroup: rbac.authorization.k8s.io}
+  - {kind: Group, name: "classroom:team4", apiGroup: rbac.authorization.k8s.io}
+  - {kind: Group, name: "classroom:team5", apiGroup: rbac.authorization.k8s.io}
+  - {kind: Group, name: "classroom:team6", apiGroup: rbac.authorization.k8s.io}
+  - {kind: Group, name: "classroom:team7", apiGroup: rbac.authorization.k8s.io}
+  - {kind: Group, name: "classroom:team8", apiGroup: rbac.authorization.k8s.io}
+roleRef:
+  kind: Role
+  name: classroom-argocd-login-reader
+  apiGroup: rbac.authorization.k8s.io

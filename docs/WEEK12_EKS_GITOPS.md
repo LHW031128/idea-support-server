@@ -323,12 +323,14 @@ Lens에서 **Local Kubeconfigs → Add kubeconfig → Sync file(s)**를 선택�
 
 Argo CD는 수업 서버에서 만든 자체 서명 인증서를 사용합니다. Chrome에서 인증서 안내가 나오면 수업 서버에 연결한 `https://localhost:18080/` 주소인지 확인한 뒤 안내에 따라 직접 진행합니다.
 
-로그인 화면에서 아래 값을 입력하고 **SIGN IN**을 누릅니다.
+Lens에서 **Config → Secrets**를 열고 namespace를 **argocd-login**으로 고릅니다. `argocd-admin-credentials`를 열어 `username`, `password` 값을 표시합니다. `team1`~`team8` 모두 자기 IAM 연결에서 확인할 수 있습니다. 목록이 비어 있으면 namespace가 `argocd-login`인지 확인하고 수업 클러스터를 다시 연결합니다.
+
+Argo CD 로그인 화면에 확인한 값을 입력하고 **SIGN IN**을 누릅니다.
 
 | 항목 | 입력할 값 |
 | --- | --- |
-| Username | `students` |
-| Password | 전달받은 **Argo CD 수업용 비밀번호** |
+| Username | `admin` |
+| Password | Lens의 `argocd-login/argocd-admin-credentials`에서 확인한 `password` |
 
 로그인하면 **Applications → classroom-team**을 엽니다. **Synced + Healthy**와 리소스 트리의 `spring`, `mysql`을 확인합니다. 이번 실습은 main에 코드를 반영한 뒤 이 화면에서 새 Pod가 준비되고 기존 Pod가 종료되는 과정을 관찰합니다.
 
@@ -344,7 +346,7 @@ Argo CD는 수업 서버에서 만든 자체 서명 인증서를 사용합니다
 - `404 page not found`: Lens의 대상 포트가 `server:8080/TCP`인지 확인합니다.
 - 포트 연결 시작 오류: 기존 `18080` 연결을 Stop/Remove한 뒤 다시 시작합니다. 포트가 필요한 다른 프로그램을 사용 중이면 다른 로컬 포트를 지정하고 주소의 번호도 함께 바꿉니다.
 - 서버 Pod가 바뀐 뒤 접속 종료: 새 `argocd-server-…` Pod를 열어 다시 연결합니다. Lens가 이전 Pod 이름을 계속 보여 주면 해당 수업 클러스터를 Disconnect한 뒤 다시 연결합니다.
-- 로그인 실패: Username은 `students`, Password는 Argo CD용 비밀번호인지 확인합니다.
+- 로그인 실패: Username은 `admin`, Password는 Lens에서 확인한 Argo CD용 비밀번호인지 확인합니다.
 
 Lens를 닫거나 해당 포트 연결을 중지하면 이 주소의 연결도 끝납니다.
 
