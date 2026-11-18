@@ -64,7 +64,9 @@ def main():
         if not exists("argocd", "argocd-secret"):
             raise SystemExit("Install Argo CD first")
         admin_password = secrets.token_urlsafe(32)
-        student_password = secrets.token_urlsafe(24)
+        student_password = getpass.getpass("Argo CD students password (hash only, no recovery Secret): ").strip()
+        if not student_password:
+            raise SystemExit("A student password is required")
         now = datetime.now(timezone.utc).isoformat()
         hashes = {"admin.password": bcrypt.hashpw(admin_password.encode(), bcrypt.gensalt()).decode(),
             "admin.passwordMtime": now,
@@ -75,7 +77,6 @@ def main():
             "-p", json.dumps({"data": {k: base64.b64encode(v.encode()).decode() for k, v in hashes.items()}})],
             check=True, stdout=subprocess.DEVNULL)
         apply("argocd", "argocd-admin-credentials", {"username": "admin", "password": admin_password})
-        apply("argocd", "argocd-student-credentials", {"username": "students", "password": student_password})
         if exists("argocd", "argocd-initial-admin-secret"):
             subprocess.run(kube + ["-n", "argocd", "delete", "secret", "argocd-initial-admin-secret"],
                            check=True, stdout=subprocess.DEVNULL)

@@ -144,9 +144,11 @@ kubectl --context classroom-main-admin -n argocd port-forward svc/argocd-server 
 브라우저에서 `https://localhost:18080/`를 연다. `configs.params.server.basehref`는 `/`를 사용한다. 학생은 Lens에서 서버 8080 포트를 로컬 18080으로 연결하고 Argo CD의 `students` 계정으로 로그인한다. TLS는 활성화된 상태이며 자체 서명 인증서 확인은 사용자 브라우저에서 진행한다.
 
 관리자 암호의 **bcrypt 해시**는 Argo CD 표준 Secret `argocd/argocd-secret`의 `admin.password`다.
-요청한 보관용 원문은 `argocd/argocd-admin-credentials`의 `password`에만 저장한다.
-`argocd-initial-admin-secret`은 변경 후 삭제한다. 학생용 account `students`는 해당 앱 조회·로그만 허용한다.
-`argocd-student-credentials`도 강사만 읽어 필요할 때 별도 전달한다.
+관리자 로그인 정보는 `argocd/argocd-admin-credentials`에 `username`, `password` 두 키로 저장한다.
+Lens에서는 **classroom-main-admin → Config → Secrets → namespace argocd → argocd-admin-credentials**를 연다. `username`은 `admin`이며, `password` 값을 표시해 로그인한다.
+학생용 `classroom-team1`~`classroom-team8` 연결에는 Secret 조회 권한이 없으므로 관리자 연결에서 확인한다.
+
+보관용 로그인 Secret은 관리자 것만 만든다. 학생 비밀번호는 설치 명령 실행 중 입력하고, Argo CD 표준 `argocd-secret`에는 로그인 검증용 bcrypt 해시만 저장한다. `students` 계정은 해당 앱 조회·로그만 허용한다. `argocd-initial-admin-secret`은 관리자 암호 변경 후 삭제한다.
 
 강사 본인 화면에서만 원문을 확인하려면:
 
@@ -157,6 +159,16 @@ kubectl -n argocd get secret argocd-admin-credentials -o jsonpath='{.data.passwo
 화면 공유 중 실행하지 않는다. Kubernetes Secret의 base64는 암호화가 아니며,
 학생 Role에는 Secret 조회·Pod exec·쓰기를 허용하지 않는다. argocd에서는 Pod·Deployment·StatefulSet·로그·이벤트를 조회할 수 있다.
 Helm upgrade 때 기존 `argocd-secret` 관리 항목의 소유권 충돌이 없는지 확인한다.
+
+`server.basehref`는 점을 포함한 **하나의 키**다. 다음처럼 `configs.params` 안에 그대로 넣고 이 values 파일을 Helm의 `-f`로 전달한다. `server: {basehref: /}`처럼 중첩하면 다른 키가 되어 반영되지 않는다.
+
+```yaml
+configs:
+  params:
+    server.basehref: /
+```
+
+적용 후 `argocd-cmd-params-cm`의 `server.basehref` 값이 `/`인지 확인한다. 이전 Service proxy 경로가 남아 있으면 브라우저가 JS·CSS를 잘못된 경로로 요청해 화면이 열리지 않는다.
 
 ## 5. Git 연결·GitOps 브랜치
 
