@@ -298,29 +298,69 @@ Lens에서 **Local Kubeconfigs → Add kubeconfig → Sync file(s)**를 선택�
 
 **Workloads → Pods**에서 `mysql-0`과 `spring-...`이 보이면 연결된 것입니다. 배포 전 Spring Pod 이름을 적어 두세요.
 
-### ③ 내 PC에서 Argo CD와 health 화면 열기
+### ③ Lens로 Argo CD 열고 로그인하기
 
-**실행 위치: Windows PowerShell, 어느 폴더에서나 실행합니다.** 아래 명령을 입력한 창은 접속하는 동안 켜 둡니다.
+**접속 주소: https://localhost:18080/**
 
-```powershell
-kubectl --context classroom-team1 proxy --port=8001
-```
+이 주소는 각자 PC에서 여는 주소입니다. 같은 번호를 사용해도 학생마다 자기 PC의 포트로 연결됩니다. Lens에 연결한 `classroom-team1`과 Argo CD 로그인 계정은 서로 다른 로그인입니다.
 
-이 창을 켜 둔 채 브라우저에서 아래 두 주소를 엽니다.
+1. Lens에서 자기 `classroom-team1` 클러스터를 엽니다. 다른 팀은 자기 팀 번호를 사용합니다.
+2. **Workloads → Pods**에서 namespace를 **argocd**로 고릅니다.
+3. 이름이 **argocd-server-…**인 Pod를 열고 **Running, Ready 1/1**인지 확인합니다. Pod 이름 뒤의 번호는 서버가 교체되면 달라집니다.
+4. 오른쪽 상세 패널의 **Containers → server → Ports**로 내려갑니다.
+5. **server:8080/TCP** 줄 옆의 **Forward…**를 누릅니다. `metrics:8083/TCP`는 상태 수집용 포트입니다.
+6. 아래 표대로 입력한 뒤 **Start**를 누릅니다.
 
-- **Argo CD:** http://127.0.0.1:8001/api/v1/namespaces/argocd/services/https:argocd-server:https/proxy/
-- **main health:** http://127.0.0.1:8001/api/v1/namespaces/team/services/spring:http/proxy/common/health
+| Lens 항목 | 입력·선택 |
+| --- | --- |
+| 대상 Pod | `argocd-server-…` |
+| 대상 컨테이너 포트 | `server:8080/TCP` |
+| Local port to forward from | `18080` |
+| https | 선택 |
+| Open in Browser | 선택 |
 
-Argo CD에는 전달받은 수업 계정으로 로그인하고 **classroom-team**을 엽니다. 이 Application에 연결된 값을 확인합니다.
+브라우저 주소창에서 **https://localhost:18080/**를 확인합니다. `Random`을 그대로 두거나 `http://localhost:0/` 주소를 사용하지 않습니다.
 
-| 항목 | team 예제 |
+Argo CD는 수업 서버에서 만든 자체 서명 인증서를 사용합니다. Chrome에서 인증서 안내가 나오면 수업 서버에 연결한 `https://localhost:18080/` 주소인지 확인한 뒤 안내에 따라 직접 진행합니다.
+
+로그인 화면에서 아래 값을 입력하고 **SIGN IN**을 누릅니다.
+
+| 항목 | 입력할 값 |
+| --- | --- |
+| Username | `students` |
+| Password | 전달받은 **Argo CD 수업용 비밀번호** |
+
+로그인하면 **Applications → classroom-team**을 엽니다. **Synced + Healthy**와 리소스 트리의 `spring`, `mysql`을 확인합니다. 이번 실습은 main에 코드를 반영한 뒤 이 화면에서 새 Pod가 준비되고 기존 Pod가 종료되는 과정을 관찰합니다.
+
+| Application 항목 | team 예제 |
 | --- | --- |
 | Repository | `MinQDU014/idea-support-server` |
 | 배포 설정 브랜치 | `main` |
 | Path | `deploy/classroom-eks/apps/team` |
 | Destination namespace | `team` |
 
-코드를 올리는 main과 Argo CD가 읽는 배포 설정 브랜치를 앞의 흐름도와 비교해 보세요.
+**연결이 안 될 때 확인하기**
+
+- `404 page not found`: Lens의 대상 포트가 `server:8080/TCP`인지 확인합니다.
+- 포트 연결 시작 오류: 기존 `18080` 연결을 Stop/Remove한 뒤 다시 시작합니다. 포트가 필요한 다른 프로그램을 사용 중이면 다른 로컬 포트를 지정하고 주소의 번호도 함께 바꿉니다.
+- 서버 Pod가 바뀐 뒤 접속 종료: 새 `argocd-server-…` Pod를 열어 다시 연결합니다. Lens가 이전 Pod 이름을 계속 보여 주면 해당 수업 클러스터를 Disconnect한 뒤 다시 연결합니다.
+- 로그인 실패: Username은 `students`, Password는 Argo CD용 비밀번호인지 확인합니다.
+
+Lens를 닫거나 해당 포트 연결을 중지하면 이 주소의 연결도 끝납니다.
+
+### ④ 내 PC에서 health 응답 열기
+
+**실행 위치: Windows PowerShell, 어느 폴더에서나 실행합니다.** 이 창은 health를 확인하는 동안 켜 둡니다.
+
+```powershell
+kubectl --context classroom-team1 proxy --port=8001
+```
+
+브라우저에서 아래 주소를 열고 `status: "ok"`, `database: "up"`을 확인합니다.
+
+**main health:** http://127.0.0.1:8001/api/v1/namespaces/team/services/spring:http/proxy/common/health
+
+Argo CD 화면은 Lens의 `https://localhost:18080/`, health 응답은 위의 `8001` 주소를 사용합니다. health는 Service를 통해 연결하므로 Spring Pod가 교체되는 동안에도 같은 주소를 사용합니다.
 
 ## 6. 직접 배포해 보기
 
