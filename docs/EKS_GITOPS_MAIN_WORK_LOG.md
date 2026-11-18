@@ -68,3 +68,14 @@
 - 접속 절 교체안은 로컬에 준비했다. Notion 연결 도구가 대상 페이지에 404를 반환하며, 데스크톱 제어 중단 요청에 따라 브라우저 편집을 하지 않았다. Notion 저장은 미완료다. 비밀번호·JWT·세부 검증 파일은 공개 저장소에 포함하지 않는다.
 
 업데이트 위치: main의 deploy/classroom-eks/templates/argocd/values.yaml, bootstrap-secrets.py, README.md 및 docs/WEEK12_EKS_GITOPS.md. Notion 프로젝트관리지원기술 12주차 CD-2의 접속 절은 추가 반영이 필요하다.
+
+## 2026-11-18 학생 8개 계정의 관리자 로그인 Secret 조회
+
+- 사용자가 학생 IAM도 모두 관리자 로그인 정보를 볼 수 있도록 명시했다. 기존에는 학생 Secret 조회를 허용하지 않아 Lens에서 보이지 않았다.
+- Lens 일반 목록 요청에 필요한 get/list/watch를 로그인 전용 namespace `argocd-login`에만 부여했다. 기존 `argocd`에는 Git 배포 키 등 다른 Secret이 있어 namespace 전체 조회 권한을 주지 않았다.
+- `share-argocd-login.py`는 수업 AWS 계정과 EKS context를 확인하고 기존 관리자 Secret의 username/password만 메모리에서 복사한다. 공개 파일에 비밀값을 기록하지 않는다. 대상 공간에 다른 Secret이 있으면 권한 적용을 중단한다.
+- `platform/argocd-login-reader.yaml`은 해당 namespace와 Role·8개 그룹의 RoleBinding을 정의한다. 로그인 정보는 관리자 계정 하나만 공유하며 별도 학생 보관용 Secret은 생성하지 않는다.
+- 학생 접속 안내를 자기 팀 연결 → Config → Secrets → argocd-login → argocd-admin-credentials로 맞춘다. 관리자 암호 변경 뒤에는 공유 명령을 다시 실행한다.
+- 8개 IAM Access Entry와 EKS 그룹 매핑을 확인했다. 그룹마다 해당 공간의 get/list/watch 허용과 수정·삭제·기타 Secret 조회 거부를 확인했다. 실제 team1 인증의 필터 없는 Secret 목록 조회에서 관리자 로그인 두 키가 원본과 일치했다. 비밀번호는 출력하지 않았다. 실제 Lens 화면 조작은 수행하지 않았다.
+
+업데이트 위치: main의 deploy/classroom-eks/share-argocd-login.py, templates/platform/argocd-login-reader.yaml, README.md 및 docs/WEEK12_EKS_GITOPS.md. Notion CD-2 접속 절은 연결 복구 후 같은 경로로 반영한다.

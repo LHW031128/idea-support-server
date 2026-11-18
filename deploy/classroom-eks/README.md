@@ -138,15 +138,20 @@ helm repo add argo https://argoproj.github.io/argo-helm
 helm repo update
 helm upgrade --install argocd argo/argo-cd --version 10.18.0 --namespace argocd --create-namespace -f .local/classroom-eks/rendered/argocd/values.yaml --wait --timeout 10m
 python3 deploy/classroom-eks/bootstrap-secrets.py argocd --kubeconfig "$KUBECONFIG"
+python3 deploy/classroom-eks/share-argocd-login.py --kubeconfig "$KUBECONFIG"
 kubectl --context classroom-main-admin -n argocd port-forward svc/argocd-server 18080:443
 ```
 
-브라우저에서 `https://localhost:18080/`를 연다. `configs.params.server.basehref`는 `/`를 사용한다. 학생은 Lens에서 서버 8080 포트를 로컬 18080으로 연결하고 Argo CD의 `students` 계정으로 로그인한다. TLS는 활성화된 상태이며 자체 서명 인증서 확인은 사용자 브라우저에서 진행한다.
+브라우저에서 `https://localhost:18080/`를 연다. `configs.params.server.basehref`는 `/`를 사용한다. 학생은 Lens에서 서버 8080 포트를 로컬 18080으로 연결하고 아래에서 확인한 `admin` 계정으로 로그인한다. TLS는 활성화된 상태이며 자체 서명 인증서 확인은 사용자 브라우저에서 진행한다.
 
 관리자 암호의 **bcrypt 해시**는 Argo CD 표준 Secret `argocd/argocd-secret`의 `admin.password`다.
 관리자 로그인 정보는 `argocd/argocd-admin-credentials`에 `username`, `password` 두 키로 저장한다.
 Lens에서는 **classroom-main-admin → Config → Secrets → namespace argocd → argocd-admin-credentials**를 연다. `username`은 `admin`이며, `password` 값을 표시해 로그인한다.
-학생용 `classroom-team1`~`classroom-team8` 연결에는 Secret 조회 권한이 없으므로 관리자 연결에서 확인한다.
+학생용 `classroom-team1`~`classroom-team8`에서는 **Config → Secrets → namespace argocd-login → argocd-admin-credentials**를 연다. 관리자와 같은 `username`, `password`를 확인할 수 있다. 수업 요청에 따라 공유한 Argo CD 관리자 계정이며, 학생 IAM 자체에 AWS 관리자 권한을 부여한 것은 아니다.
+
+`share-argocd-login.py`는 기존 `argocd`의 관리자 로그인 정보 두 키만 `argocd-login`으로 복사하고, 8개 그룹에 해당 namespace의 Secret `get/list/watch`를 허용한다. 이 공간에는 관리자 로그인 Secret 하나만 둔다. 기존 `argocd`의 Git 쓰기 키·Helm Secret은 공유하지 않는다. 관리자 암호를 바꾸면 이 명령을 다시 실행해 공유 사본도 갱신한다.
+
+이름 하나에 제한한 `list/watch` 권한은 클라이언트가 이름 field selector를 함께 보내야 한다. Lens의 일반 목록 요청에 맞춰 로그인 전용 namespace에서 조회를 허용했다. 근거: [Kubernetes RBAC의 resourceNames](https://kubernetes.io/docs/reference/access-authn-authz/rbac/#referring-to-resources).
 
 보관용 로그인 Secret은 관리자 것만 만든다. 학생 비밀번호는 설치 명령 실행 중 입력하고, Argo CD 표준 `argocd-secret`에는 로그인 검증용 bcrypt 해시만 저장한다. `students` 계정은 해당 앱 조회·로그만 허용한다. `argocd-initial-admin-secret`은 관리자 암호 변경 후 삭제한다.
 
@@ -157,7 +162,7 @@ kubectl -n argocd get secret argocd-admin-credentials -o jsonpath='{.data.passwo
 ```
 
 화면 공유 중 실행하지 않는다. Kubernetes Secret의 base64는 암호화가 아니며,
-학생 Role에는 Secret 조회·Pod exec·쓰기를 허용하지 않는다. argocd에서는 Pod·Deployment·StatefulSet·로그·이벤트를 조회할 수 있다.
+학생 Role의 Secret 조회는 로그인 전용 `argocd-login`에만 허용한다. Pod exec·리소스 쓰기는 허용하지 않는다. `argocd`에서는 기존 Pod·Deployment·StatefulSet·로그·이벤트를 조회할 수 있다.
 Helm upgrade 때 기존 `argocd-secret` 관리 항목의 소유권 충돌이 없는지 확인한다.
 
 `server.basehref`는 점을 포함한 **하나의 키**다. 다음처럼 `configs.params` 안에 그대로 넣고 이 values 파일을 Helm의 `-f`로 전달한다. `server: {basehref: /}`처럼 중첩하면 다른 키가 되어 반영되지 않는다.
@@ -356,6 +361,6 @@ python3 deploy/classroom-eks/grant-argocd-portforward.py --kubeconfig "$KUBECONF
 
 Lens에서 `argocd-server` Pod의 `server:8080/TCP` 줄 옆 Forward를 사용한다. Local port는 `18080`, https와 Open in Browser를 선택한다. 접속 주소는 `https://localhost:18080/`이고 `server.basehref`는 `/`다. `metrics:8083/TCP`를 선택하면 UI 주소에서 404가 나온다. 수업 health 확인은 기존 8001 Service proxy를 사용한다.
 
-Deployment·StatefulSet·ReplicaSet·DaemonSet의 get/list/watch는 `platform/workload-catalog.yaml`의 ClusterRoleBinding으로 모든 수업 namespace에서 허용한다. Lens의 Deployments에서 All namespaces를 고르면 Spring·Argo CD·시스템 배포 목록이 함께 보인다. Pod·로그 조회 범위는 기존 team·본인 팀·argocd이며, Secret·생성·수정·삭제 권한은 추가하지 않는다.
+Deployment·StatefulSet·ReplicaSet·DaemonSet의 get/list/watch는 `platform/workload-catalog.yaml`의 ClusterRoleBinding으로 모든 수업 namespace에서 허용한다. Lens의 Deployments에서 All namespaces를 고르면 Spring·Argo CD·시스템 배포 목록이 함께 보인다. Pod·로그 조회 범위는 기존 team·본인 팀·argocd다. Secret은 로그인 전용 `argocd-login`에서만 조회하며, Kubernetes 리소스 생성·수정·삭제 권한은 추가하지 않는다.
 
 참고: https://kubernetes.io/docs/tasks/access-application-cluster/port-forward-access-application-cluster/
