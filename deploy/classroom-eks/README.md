@@ -138,11 +138,10 @@ helm repo add argo https://argoproj.github.io/argo-helm
 helm repo update
 helm upgrade --install argocd argo/argo-cd --version 10.18.0 --namespace argocd --create-namespace -f .local/classroom-eks/rendered/argocd/values.yaml --wait --timeout 10m
 python3 deploy/classroom-eks/bootstrap-secrets.py argocd --kubeconfig "$KUBECONFIG"
-kubectl --context classroom-main-admin proxy --port=8001
+kubectl --context classroom-main-admin -n argocd port-forward svc/argocd-server 18080:443
 ```
 
-브라우저에서 `http://127.0.0.1:8001/api/v1/namespaces/argocd/services/https:argocd-server:https/proxy/`를 연다.
-`configs.params.server.basehref`는 이 경로에 맞춘다. 로컬 proxy는 본인의 Kubernetes 인증으로 연결하고, Argo CD에서는 별도로 로그인한다.
+브라우저에서 `https://localhost:18080/`를 연다. `configs.params.server.basehref`는 `/`를 사용한다. 학생은 Lens에서 서버 8080 포트를 로컬 18080으로 연결하고 Argo CD의 `students` 계정으로 로그인한다. TLS는 활성화된 상태이며 자체 서명 인증서 확인은 사용자 브라우저에서 진행한다.
 
 관리자 암호의 **bcrypt 해시**는 Argo CD 표준 Secret `argocd/argocd-secret`의 `admin.password`다.
 요청한 보관용 원문은 `argocd/argocd-admin-credentials`의 `password`에만 저장한다.
@@ -297,7 +296,7 @@ IP를 제한하는 구성으로 바꾼 경우에는 학생의 실제 egress 공�
 kubectl --context classroom-team1 proxy --port=8001
 ```
 
-- Argo CD: `http://127.0.0.1:8001/api/v1/namespaces/argocd/services/https:argocd-server:https/proxy/`
+- Argo CD: Lens에서 `argocd-server`의 서버 8080을 로컬 18080으로 연결한 뒤 `https://localhost:18080/`.
 - health: `http://127.0.0.1:8001/api/v1/namespaces/team/services/spring:http/proxy/common/health`
 
 `platform/browser-access.yaml`은 classroom:team1~team8 그룹에 team의 spring:http Service 조회 경로와 argocd의 지정된 Service 경로만 허용한다. Argo 로그인 POST를 위해 해당 서비스 proxy에 create를 허용하며, 실제 배포 변경은 Argo의 students 조회 정책이 차단한다. 다른 서비스·Secret·Pod 삭제 권한은 추가하지 않는다.
@@ -343,7 +342,7 @@ Retain인 EBS는 클러스터 삭제 뒤에도 비용이 남는다. 기존 Light
 python3 deploy/classroom-eks/grant-argocd-portforward.py --kubeconfig "$KUBECONFIG" --context classroom-main-admin
 ```
 
-Lens에서 argocd-server Pod의 8080 포트를 선택하고 Local port를 18080처럼 비어 있는 값으로 지정한다. Argo CD 서버는 TLS를 사용하므로 HTTP 요청은 HTTPS로 리다이렉트된다. 수업의 HTTP 브라우저 접속은 기존 kubectl proxy 주소를 사용한다.
+Lens에서 `argocd-server` Pod의 `server:8080/TCP` 줄 옆 Forward를 사용한다. Local port는 `18080`, https와 Open in Browser를 선택한다. 접속 주소는 `https://localhost:18080/`이고 `server.basehref`는 `/`다. `metrics:8083/TCP`를 선택하면 UI 주소에서 404가 나온다. 수업 health 확인은 기존 8001 Service proxy를 사용한다.
 
 Deployment·StatefulSet·ReplicaSet·DaemonSet의 get/list/watch는 `platform/workload-catalog.yaml`의 ClusterRoleBinding으로 모든 수업 namespace에서 허용한다. Lens의 Deployments에서 All namespaces를 고르면 Spring·Argo CD·시스템 배포 목록이 함께 보인다. Pod·로그 조회 범위는 기존 team·본인 팀·argocd이며, Secret·생성·수정·삭제 권한은 추가하지 않는다.
 

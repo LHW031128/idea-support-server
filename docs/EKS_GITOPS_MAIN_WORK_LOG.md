@@ -1,5 +1,12 @@
 # 수업 배포 설정 main 통합 기록
 
+## 2026-11-18 Lens에서 Argo CD 로그인 확인 진행
+
+- Lens의 로컬 18080 접속과 학생 로그인까지 확인한다. 이전 작업은 TCP 연결과 HTTP 307 응답까지만 확인했다.
+- 현재 server.basehref가 Kubernetes Service proxy 경로여서 직접 포트 연결의 UI 경로와 맞지 않는다. 기본 경로 /로 바꾸고 Argo CD 서버에 적용한다.
+- Argo CD 서버가 재생성되면 현재 서버 Pod에 한정한 학생 포트 연결 권한을 갱신한다. Spring·MySQL Pod와 PVC는 전후 상태를 대조한다.
+- 최종 접속 주소, Lens의 서버 포트 선택과 로그인 순서를 실제 화면으로 확인한 뒤 학생 강의에 반영한다.
+
 ## 2026-11-18 변경
 
 - 학생이 main에서 실제 배포 파일을 찾아 배포 동작을 추적하도록 앱 정의와 설치 구성, 연결 설정을 main에 모은다.
@@ -41,3 +48,11 @@
 - platform/workload-catalog.yaml을 적용했다. get/list/watch만 있으며 Secret·생성·수정·삭제 규칙은 없다.
 - 실제 team1 인증으로 전체 Deployment·StatefulSet 목록을 확인했다. Lens의 argocd 필터에서도 Argo CD Deployment 5개가 표시됐다. Spring은 team의 Deployment이고 MySQL·Argo application-controller는 StatefulSet이다.
 - Notion 본문은 main의 실제 파일 연결과 YAML → Kubernetes API → 컨트롤러 → Pod 과정을 설명하도록 다시 저장했다. 기존 아키텍처 이미지 두 개를 보존하고 중복 섹션이 없음을 다시 읽어 확인했다.
+
+## 2026-11-18 직접 접속 경로 수정 결과
+
+- Argo CD Helm chart 10.18.0을 같은 버전으로 갱신해 server.basehref를 /로 맞췄다. TLS와 학생 로그인 정책은 유지했다.
+- Argo CD 구성요소 갱신 후 현재 서버 Pod 이름으로 기존 승인된 학생 포트 연결 Role을 갱신했다. Spring·MySQL Pod 및 PVC의 UID는 전후 동일했다.
+- 실제 team1 AWS 인증의 임시 18081 연결에서 서버 인증서를 신뢰 대상으로 검증했다. / 화면과 JavaScript 파일은 HTTP 200, students 로그인과 classroom-team 조회도 성공했고 Synced·Healthy였다.
+- 임시 연결은 종료했다. 비밀번호·JWT는 출력하거나 평문 파일로 보관하지 않았다.
+- Windows 창 활성화·화면 캡처가 실패해 Lens 18080과 실제 브라우저 로그인은 아직 대기 중이다. API 점검과 UI 검증을 구분한다. 학생 안내는 실제 UI 결과를 확인한 뒤 Notion에 반영한다.

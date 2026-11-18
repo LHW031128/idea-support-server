@@ -1,6 +1,6 @@
 configs:
   params:
-    server.basehref: /api/v1/namespaces/argocd/services/https:argocd-server:https/proxy/
+    server.basehref: /
   cm:
     admin.enabled: true
     accounts.students: login
